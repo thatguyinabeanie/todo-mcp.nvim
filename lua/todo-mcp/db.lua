@@ -1,27 +1,33 @@
 local M = {}
-local db_path
+local db
 
--- Use system sqlite3 command for simplicity and performance
-local function execute_sql(query, get_results)
-  local cmd = string.format("sqlite3 -separator '|' '%s' '%s'", db_path, query)
-  if get_results then
-    local handle = io.popen(cmd)
-    local result = handle:read("*a")
-    handle:close()
-    return result
-  else
-    os.execute(cmd)
-  end
+-- Cache for performance
+local cache = {
+  todos = nil,
+  last_update = 0
+}
+
+-- Clear cache on modifications
+local function clear_cache()
+  cache.todos = nil
+  cache.last_update = 0
 end
 
-M.setup = function(path)
-  db_path = path
+M.setup = function(db_path)
+  -- Load sqlite.lua (check if available, otherwise fall back)
+  local has_sqlite, sqlite = pcall(require, "sqlite")
+  if not has_sqlite then
+    error("sqlite.lua not found. Please install with: use { 'kkharji/sqlite.lua' }")
+  end
   
   -- Ensure directory exists
   vim.fn.mkdir(vim.fn.fnamemodify(db_path, ":h"), "p")
   
+  -- Open database
+  db = sqlite:open(db_path)
+  
   -- Create todos table if it doesn't exist
-  execute_sql([[
+  db:eval([[
     CREATE TABLE IF NOT EXISTS todos (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       content TEXT NOT NULL,
@@ -32,12 +38,6 @@ M.setup = function(path)
   ]])
 end
 
--- Cache for performance
-local cache = {
-  todos = nil,
-  last_update = 0
-}
-
 M.get_all = function()
   -- Cache for 1 second to avoid excessive DB reads during UI updates
   local now = vim.loop.now()
@@ -45,18 +45,11 @@ M.get_all = function()
     return cache.todos
   end
   
-  local result = execute_sql("SELECT id, content, done FROM todos ORDER BY done ASC, created_at ASC;", true)
-  local todos = {}
+  local todos = db:eval("SELECT * FROM todos ORDER BY done ASC, created_at ASC")
   
-  for line in result:gmatch("[^\n]+") do
-    local id, content, done = line:match("^(%d+)|(.+)|(%d+)$")
-    if id then
-      table.insert(todos, {
-        id = tonumber(id),
-        content = content,
-        done = done == "1"
-      })
-    end
+  -- Convert done field to boolean
+  for _, todo in ipairs(todos) do
+    todo.done = todo.done == 1
   end
   
   cache.todos = todos
@@ -64,55 +57,49 @@ M.get_all = function()
   return todos
 end
 
--- Clear cache on modifications
-local function clear_cache()
-  cache.todos = nil
-  cache.last_update = 0
-end
-
 M.add = function(content)
   clear_cache()
-  -- Escape single quotes
-  content = content:gsub("'", "''")
-  execute_sql(string.format("INSERT INTO todos (content) VALUES ('%s');", content))
+  db:eval("INSERT INTO todos (content) VALUES (?)", content)
   
   -- Get the last inserted ID
-  local id_result = execute_sql("SELECT last_insert_rowid();", true)
-  return tonumber(id_result:match("(%d+)"))
+  local result = db:eval("SELECT last_insert_rowid() as id")
+  return result[1] and result[1].id
 end
 
 M.update = function(id, updates)
   clear_cache()
-  local set_clauses = {}
   
-  if updates.content then
-    local escaped = updates.content:gsub("'", "''")
-    table.insert(set_clauses, string.format("content = '%s'", escaped))
+  if updates.content and updates.done ~= nil then
+    db:eval(
+      "UPDATE todos SET content = ?, done = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      updates.content, updates.done and 1 or 0, id
+    )
+  elseif updates.content then
+    db:eval(
+      "UPDATE todos SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      updates.content, id
+    )
+  elseif updates.done ~= nil then
+    db:eval(
+      "UPDATE todos SET done = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+      updates.done and 1 or 0, id
+    )
+  else
+    return false
   end
   
-  if updates.done ~= nil then
-    table.insert(set_clauses, string.format("done = %d", updates.done and 1 or 0))
-  end
-  
-  if #set_clauses > 0 then
-    table.insert(set_clauses, "updated_at = CURRENT_TIMESTAMP")
-    local query = string.format("UPDATE todos SET %s WHERE id = %d;", table.concat(set_clauses, ", "), id)
-    execute_sql(query)
-    return true
-  end
-  
-  return false
+  return true
 end
 
 M.delete = function(id)
   clear_cache()
-  execute_sql(string.format("DELETE FROM todos WHERE id = %d;", id))
+  db:eval("DELETE FROM todos WHERE id = ?", id)
   return true
 end
 
 M.toggle_done = function(id)
   clear_cache()
-  execute_sql(string.format("UPDATE todos SET done = NOT done, updated_at = CURRENT_TIMESTAMP WHERE id = %d;", id))
+  db:eval("UPDATE todos SET done = NOT done, updated_at = CURRENT_TIMESTAMP WHERE id = ?", id)
   return true
 end
 

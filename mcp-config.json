@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "todo-mcp": {
-      "command": "python3",
-      "args": ["./mcp-server.py"],
+      "command": "lua",
+      "args": ["./mcp-server.lua"],
       "env": {
         "TODO_MCP_DB": "~/.local/share/nvim/todo-mcp.db"
       }

@@ -16,7 +16,10 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 ```lua
 {
-  "your-username/todo-mcp.nvim",
+  "thatguyinabeanie/todo-mcp.nvim",
+  dependencies = {
+    "kkharji/sqlite.lua",  -- Required for database operations
+  },
   config = function()
     require("todo-mcp").setup({
       keymaps = {
@@ -53,7 +56,7 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
 1. Start the MCP server:
 ```bash
-python3 ~/.local/share/nvim/plugged/todo-mcp.nvim/mcp-server.py
+lua ~/.local/share/nvim/plugged/todo-mcp.nvim/mcp-server.lua
 ```
 
 2. Configure your MCP client (e.g., Claude Desktop) to connect to the server.
@@ -111,7 +114,7 @@ Add to your MCP configuration file:
 
 - Neovim 0.7+
 - SQLite3 (system command)
-- Python 3.6+ (for MCP server)
+- Lua 5.1+ or LuaJIT (for standalone MCP server)
 
 ## License
 
