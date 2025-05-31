@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "todo-mcp": {
+      "command": "python3",
+      "args": ["./mcp-server.py"],
+      "env": {
+        "TODO_MCP_DB": "~/.local/share/nvim/todo-mcp.db"
+      }
+    }
+  }
+}
