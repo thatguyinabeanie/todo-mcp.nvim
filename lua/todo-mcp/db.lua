@@ -1,4 +1,6 @@
 local M = {}
+local schema = require("todo-mcp.schema")
+local todos_tbl
 local db
 
 -- Cache for performance
@@ -14,7 +16,7 @@ local function clear_cache()
 end
 
 M.setup = function(db_path)
-  -- Load sqlite.lua (check if available, otherwise fall back)
+  -- Load sqlite.lua
   local has_sqlite, sqlite = pcall(require, "sqlite")
   if not has_sqlite then
     error("sqlite.lua not found. Please install with: use { 'kkharji/sqlite.lua' }")
@@ -26,16 +28,11 @@ M.setup = function(db_path)
   -- Open database
   db = sqlite:open(db_path)
   
-  -- Create todos table if it doesn't exist
-  db:eval([[
-    CREATE TABLE IF NOT EXISTS todos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      content TEXT NOT NULL,
-      done INTEGER DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
-  ]])
+  -- Create table using shared schema
+  todos_tbl = db:tbl("todos", schema.todos_schema)
+  
+  -- Ensure table exists
+  todos_tbl:create()
 end
 
 M.get_all = function()
@@ -45,7 +42,13 @@ M.get_all = function()
     return cache.todos
   end
   
-  local todos = db:eval("SELECT * FROM todos ORDER BY done ASC, created_at ASC")
+  -- Use table API to get all todos
+  local todos = todos_tbl:get({
+    select = { "id", "content", "done", "created_at", "updated_at" },
+    order_by = {
+      asc = { "done", "created_at" }
+    }
+  })
   
   -- Convert done field to boolean
   for _, todo in ipairs(todos) do
@@ -59,48 +62,81 @@ end
 
 M.add = function(content)
   clear_cache()
-  db:eval("INSERT INTO todos (content) VALUES (?)", content)
   
-  -- Get the last inserted ID
-  local result = db:eval("SELECT last_insert_rowid() as id")
-  return result[1] and result[1].id
+  -- Use table API to insert
+  local result = todos_tbl:insert({
+    content = content,
+    created_at = schema.timestamp(),
+    updated_at = schema.timestamp()
+  })
+  
+  -- Return the inserted ID
+  return result and result.id or nil
 end
 
 M.update = function(id, updates)
   clear_cache()
   
-  if updates.content and updates.done ~= nil then
-    db:eval(
-      "UPDATE todos SET content = ?, done = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-      updates.content, updates.done and 1 or 0, id
-    )
-  elseif updates.content then
-    db:eval(
-      "UPDATE todos SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-      updates.content, id
-    )
-  elseif updates.done ~= nil then
-    db:eval(
-      "UPDATE todos SET done = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-      updates.done and 1 or 0, id
-    )
-  else
-    return false
+  local update_data = {}
+  
+  if updates.content then
+    update_data.content = updates.content
   end
   
-  return true
+  if updates.done ~= nil then
+    update_data.done = updates.done and 1 or 0
+  end
+  
+  if next(update_data) then
+    update_data.updated_at = schema.timestamp()
+    
+    -- Use table API to update
+    todos_tbl:update({
+      where = { id = id },
+      set = update_data
+    })
+    
+    return true
+  end
+  
+  return false
 end
 
 M.delete = function(id)
   clear_cache()
-  db:eval("DELETE FROM todos WHERE id = ?", id)
+  
+  -- Use table API to delete
+  todos_tbl:remove({ id = id })
+  
   return true
 end
 
 M.toggle_done = function(id)
   clear_cache()
-  db:eval("UPDATE todos SET done = NOT done, updated_at = CURRENT_TIMESTAMP WHERE id = ?", id)
-  return true
+  
+  -- Get current state
+  local todos = todos_tbl:get({ where = { id = id }, limit = 1 })
+  if #todos > 0 then
+    local current_done = todos[1].done
+    
+    -- Toggle and update
+    todos_tbl:update({
+      where = { id = id },
+      set = {
+        done = current_done == 1 and 0 or 1,
+        updated_at = schema.timestamp()
+      }
+    })
+    
+    return true
+  end
+  
+  return false
+end
+
+-- Get direct database handle for advanced operations
+M.get_db = function()
+  return db
 end
 
 return M

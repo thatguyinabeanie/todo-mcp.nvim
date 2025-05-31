@@ -99,6 +99,9 @@ end)()
 -- Database setup
 local db, db_ops
 
+-- Try to load schema if available
+local has_schema, schema = pcall(require, "todo-mcp.schema")
+
 local function get_db_path()
   if vim then
     return vim.fn.expand("~/.local/share/nvim/todo-mcp.db")
@@ -113,24 +116,27 @@ local db_path = get_db_path()
 local has_sqlite, sqlite = pcall(require, "sqlite")
 
 if has_sqlite then
-  -- Use sqlite.lua
+  -- Use sqlite.lua with table API
   db = sqlite:open(db_path)
+  
+  -- Create table handle
+  local todos_tbl = db:tbl("todos", has_schema and schema.todos_schema or {
+    id = { "integer", primary = true },
+    content = { "text", required = true },
+    done = { "integer", default = 0 },
+    created_at = { "text", default = "CURRENT_TIMESTAMP" },
+    updated_at = { "text", default = "CURRENT_TIMESTAMP" }
+  })
   
   db_ops = {
     init = function()
-      db:eval([[
-        CREATE TABLE IF NOT EXISTS todos (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          content TEXT NOT NULL,
-          done INTEGER DEFAULT 0,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-      ]])
+      todos_tbl:create()
     end,
     
     get_all = function()
-      local todos = db:eval("SELECT * FROM todos ORDER BY done ASC, created_at ASC")
+      local todos = todos_tbl:get({
+        order_by = { asc = { "done", "created_at" } }
+      })
       for _, todo in ipairs(todos) do
         todo.done = todo.done == 1
       end
@@ -138,35 +144,42 @@ if has_sqlite then
     end,
     
     add = function(content)
-      db:eval("INSERT INTO todos (content) VALUES (?)", content)
-      local result = db:eval("SELECT last_insert_rowid() as id")
-      return result[1] and result[1].id
+      local timestamp = has_schema and schema.timestamp() or os.date("%Y-%m-%d %H:%M:%S")
+      local result = todos_tbl:insert({
+        content = content,
+        created_at = timestamp,
+        updated_at = timestamp
+      })
+      return result and result.id or nil
     end,
     
     update = function(id, content, done)
-      if content and done ~= nil then
-        db:eval(
-          "UPDATE todos SET content = ?, done = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-          content, done and 1 or 0, id
-        )
-      elseif content then
-        db:eval(
-          "UPDATE todos SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-          content, id
-        )
-      elseif done ~= nil then
-        db:eval(
-          "UPDATE todos SET done = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-          done and 1 or 0, id
-        )
-      else
-        return false
+      local update_data = {}
+      
+      if content then
+        update_data.content = content
       end
-      return true
+      
+      if done ~= nil then
+        update_data.done = done and 1 or 0
+      end
+      
+      if next(update_data) then
+        update_data.updated_at = has_schema and schema.timestamp() or os.date("%Y-%m-%d %H:%M:%S")
+        
+        todos_tbl:update({
+          where = { id = id },
+          set = update_data
+        })
+        
+        return true
+      end
+      
+      return false
     end,
     
     delete = function(id)
-      db:eval("DELETE FROM todos WHERE id = ?", id)
+      todos_tbl:remove({ id = id })
       return true
     end
   }
@@ -189,7 +202,7 @@ else
   
   db_ops = {
     init = function()
-      execute_sql([[
+      execute_sql(has_schema and schema.todos_sql or [[
         CREATE TABLE IF NOT EXISTS todos (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           content TEXT NOT NULL,

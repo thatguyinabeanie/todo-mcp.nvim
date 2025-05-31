@@ -4,33 +4,8 @@ local db = require("todo-mcp.db")
 
 -- Get all todos with full metadata from SQLite
 local function get_todos_with_metadata()
-  -- Direct SQL query to get all fields including timestamps
-  local db_path = require("todo-mcp").opts and require("todo-mcp").opts.db_path 
-    or vim.fn.expand("~/.local/share/nvim/todo-mcp.db")
-  local cmd = string.format("sqlite3 -separator '|' '%s' '%s'", 
-    db_path,
-    "SELECT id, content, done, created_at, updated_at FROM todos ORDER BY done ASC, created_at ASC;"
-  )
-  
-  local handle = io.popen(cmd)
-  local result = handle:read("*a")
-  handle:close()
-  
-  local todos = {}
-  for line in result:gmatch("[^\n]+") do
-    local id, content, done, created_at, updated_at = line:match("^(%d+)|(.+)|(%d+)|(.+)|(.+)$")
-    if id then
-      table.insert(todos, {
-        id = tonumber(id),
-        content = content,
-        done = done == "1",
-        created_at = created_at,
-        updated_at = updated_at
-      })
-    end
-  end
-  
-  return todos
+  -- Simply use the db module's get_all function which already has all fields
+  return db.get_all()
 end
 
 -- Export to Markdown format
