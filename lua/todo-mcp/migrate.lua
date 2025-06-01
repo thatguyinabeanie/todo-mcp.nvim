@@ -106,19 +106,30 @@ end
 
 -- Run migrations
 M.migrate = function(db)
-  local current_version = M.get_version(db)
+  local ok, current_version = pcall(M.get_version, db)
+  if not ok then
+    current_version = 0
+  end
   
   for _, migration in ipairs(M.migrations) do
     if migration.version > current_version then
-      -- Run migration
-      local ok, err = pcall(migration.up, db)
-      if ok then
+      -- Run migration with error handling
+      local migration_ok, err = pcall(migration.up, db)
+      if migration_ok then
         -- Record successful migration
-        db:eval("INSERT INTO schema_version (version) VALUES (?)", migration.version)
-        vim.notify("Applied migration " .. migration.version, vim.log.levels.INFO)
+        local record_ok = pcall(function()
+          db:eval("INSERT INTO schema_version (version) VALUES (?)", migration.version)
+        end)
+        if record_ok then
+          vim.schedule(function()
+            vim.notify("Applied database migration " .. migration.version, vim.log.levels.INFO)
+          end)
+        end
       else
-        vim.notify("Migration " .. migration.version .. " failed: " .. tostring(err), vim.log.levels.ERROR)
-        error("Migration failed")
+        -- Log error but don't fail completely
+        vim.schedule(function()
+          vim.notify("Migration " .. migration.version .. " failed: " .. tostring(err), vim.log.levels.WARN)
+        end)
       end
     end
   end

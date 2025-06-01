@@ -38,13 +38,28 @@ M.setup = function(db_path)
   if not table_exists then
     -- New database - create with full schema
     db:eval(schema.todos_sql)
+  else
+    -- Existing database - run migrations first
+    local migrate = require("todo-mcp.migrate")
+    migrate.migrate(db)
   end
   
-  -- Run migrations to update existing schema
+  -- Create basic table structure if needed (fallback)
+  db:eval([[
+    CREATE TABLE IF NOT EXISTS todos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      content TEXT NOT NULL,
+      done INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  ]])
+  
+  -- Always run migrations to ensure we have all columns
   local migrate = require("todo-mcp.migrate")
   migrate.migrate(db)
   
-  -- Then create table handle for operations
+  -- Then create table handle for operations (this should now work)
   todos_tbl = db:tbl("todos")
 end
 
@@ -73,13 +88,19 @@ M.get_all = function()
     end
   end
   
-  -- Use table API to get all todos
-  local todos = todos_tbl:get({
-    select = select_cols,
-    order_by = {
-      asc = columns.status and { "status", "created_at" } or columns.done and { "done", "created_at" } or { "created_at" }
-    }
-  })
+  -- Use raw SQL instead of table API to avoid schema issues
+  local select_sql = "SELECT " .. table.concat(select_cols, ", ") .. " FROM todos"
+  
+  -- Add ORDER BY clause
+  if columns.status then
+    select_sql = select_sql .. " ORDER BY status ASC, created_at ASC"
+  elseif columns.done then
+    select_sql = select_sql .. " ORDER BY done ASC, created_at ASC"
+  else
+    select_sql = select_sql .. " ORDER BY created_at ASC"
+  end
+  
+  local todos = db:eval(select_sql)
   
   -- Add missing fields with defaults for backward compatibility
   for _, todo in ipairs(todos) do

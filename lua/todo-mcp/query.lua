@@ -9,8 +9,17 @@ M.search = function(query)
     error("Database not initialized")
   end
   
+  -- Check if status column exists
+  local columns = {}
+  local pragma = handle:eval("PRAGMA table_info(todos)")
+  for _, col in ipairs(pragma) do
+    columns[col.name] = true
+  end
+  
+  local order_clause = columns.status and "ORDER BY status ASC, created_at DESC" or "ORDER BY done ASC, created_at DESC"
+  
   return handle:eval(
-    "SELECT * FROM todos WHERE content LIKE ? ORDER BY done ASC, created_at DESC",
+    "SELECT * FROM todos WHERE content LIKE ? " .. order_clause,
     "%" .. query .. "%"
   )
 end
@@ -35,6 +44,13 @@ M.stats = function()
     error("Database not initialized")
   end
   
+  -- Check if status column exists
+  local columns = {}
+  local pragma = handle:eval("PRAGMA table_info(todos)")
+  for _, col in ipairs(pragma) do
+    columns[col.name] = true
+  end
+  
   local stats = {}
   
   -- Total todos
@@ -42,7 +58,8 @@ M.stats = function()
   stats.total = total[1].count
   
   -- Completed todos
-  local completed = handle:eval("SELECT COUNT(*) as count FROM todos WHERE done = 1")
+  local completed_query = columns.status and "SELECT COUNT(*) as count FROM todos WHERE status = 'done'" or "SELECT COUNT(*) as count FROM todos WHERE done = 1"
+  local completed = handle:eval(completed_query)
   stats.completed = completed[1].count
   
   -- Active todos
@@ -69,15 +86,24 @@ M.grouped = function()
     error("Database not initialized")
   end
   
+  -- Check if status column exists
+  local columns = {}
+  local pragma = handle:eval("PRAGMA table_info(todos)")
+  for _, col in ipairs(pragma) do
+    columns[col.name] = true
+  end
+  
   local result = {
     active = {},
     completed = {}
   }
   
-  local todos = handle:eval("SELECT * FROM todos ORDER BY done ASC, created_at DESC")
+  local order_clause = columns.status and "ORDER BY status ASC, created_at DESC" or "ORDER BY done ASC, created_at DESC"
+  local todos = handle:eval("SELECT * FROM todos " .. order_clause)
   
   for _, todo in ipairs(todos) do
-    if todo.done == 1 then
+    local is_done = columns.status and (todo.status == "done") or (todo.done == 1)
+    if is_done then
       table.insert(result.completed, todo)
     else
       table.insert(result.active, todo)
@@ -95,10 +121,18 @@ M.archive_completed = function(days_old)
     error("Database not initialized")
   end
   
+  -- Check if status column exists
+  local columns = {}
+  local pragma = handle:eval("PRAGMA table_info(todos)")
+  for _, col in ipairs(pragma) do
+    columns[col.name] = true
+  end
+  
   -- First, export old completed todos
+  local where_clause = columns.status and "WHERE status = 'done'" or "WHERE done = 1"
   local old_todos = handle:eval([[
     SELECT * FROM todos 
-    WHERE done = 1 
+    ]] .. where_clause .. [[ 
     AND updated_at < datetime('now', '-' || ? || ' days')
   ]], days_old)
   
@@ -126,7 +160,7 @@ M.archive_completed = function(days_old)
     -- Delete from main database
     handle:eval([[
       DELETE FROM todos 
-      WHERE done = 1 
+      ]] .. where_clause .. [[ 
       AND updated_at < datetime('now', '-' || ? || ' days')
     ]], days_old)
     
