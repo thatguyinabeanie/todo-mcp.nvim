@@ -126,12 +126,31 @@ M.todo_to_markdown = function(todo)
     end
   end
   
+  -- Add arbitrary fields from metadata
+  if todo.metadata then
+    local ok, extra_fields = pcall(vim.json.decode, todo.metadata)
+    if ok and type(extra_fields) == "table" then
+      for key, value in pairs(extra_fields) do
+        -- Don't override core fields
+        if not frontmatter[key] then
+          frontmatter[key] = value
+        end
+      end
+    end
+  end
+  
   return M.serialize(frontmatter, todo.content or "")
 end
 
 -- Convert markdown to database todo format
 M.markdown_to_todo = function(markdown_text)
   local frontmatter, content = M.parse(markdown_text)
+  
+  -- Core fields that map to database columns
+  local core_fields = {
+    "title", "status", "priority", "tags", "file", "line",
+    "createdAt", "updatedAt", "completedAt"
+  }
   
   local todo = {
     title = frontmatter.title or content:match("^[^\n]+") or "Untitled",
@@ -162,6 +181,30 @@ M.markdown_to_todo = function(markdown_text)
     todo.file_path = frontmatter.file
     todo.line_number = frontmatter.line
   end
+  
+  -- Extract arbitrary fields into metadata
+  local metadata = {}
+  for key, value in pairs(frontmatter) do
+    local is_core = false
+    for _, core_field in ipairs(core_fields) do
+      if key == core_field then
+        is_core = true
+        break
+      end
+    end
+    
+    if not is_core then
+      metadata[key] = value
+    end
+  end
+  
+  -- Store metadata as JSON if there are any extra fields
+  if next(metadata) then
+    todo.metadata = vim.json.encode(metadata)
+  end
+  
+  -- Store original frontmatter for perfect reconstruction
+  todo.frontmatter_raw = M.serialize(frontmatter, ""):match("^(.-)\n---")
   
   return todo
 end

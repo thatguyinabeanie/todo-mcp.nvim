@@ -110,6 +110,10 @@ require("todo-mcp").setup({
     width = 80,
     height = 30,
     border = "rounded",
+    -- View style (see View Styles section below)
+    style = {
+      preset = "emoji"  -- minimal | emoji | sections | compact | ascii
+    }
   },
   
   -- Internal keymaps (inside todo list popup)
@@ -131,6 +135,47 @@ vim.g.todo_mcp_no_default_keymaps = true
 vim.keymap.set("n", "<leader>tt", "<Plug>(todo-mcp-toggle)")
 vim.keymap.set("n", "<leader>ta", "<Plug>(todo-mcp-add)")
 vim.keymap.set("n", "<leader>tA", "<Plug>(todo-mcp-add-advanced)")
+```
+
+## View Styles
+
+The plugin supports multiple view styles to match your preference:
+
+### Minimal
+```
+○ Buy milk
+○ Fix parser bug
+● Deploy to staging
+```
+
+### Emoji (Default)
+```
+○ Buy milk
+◐ 🔥 Fix parser bug @main.lua:42
+✓ 🚀 Deploy to staging
+```
+
+### Sections
+```
+## 🔥 High Priority
+◐ Fix parser bug
+
+## ⚡ Medium Priority  
+○ Update docs
+
+## ✅ Completed
+● Deploy to staging
+```
+
+### Custom Style
+```lua
+ui = {
+  style = {
+    status_indicators = { todo = "▷", in_progress = "▶", done = "■" },
+    priority_style = "bracket",  -- Shows [H] [M] [L]
+    layout = "priority_sections"
+  }
+}
 ```
 
 ## MCP Configuration

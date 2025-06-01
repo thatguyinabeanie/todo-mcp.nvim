@@ -110,6 +110,52 @@ Configuration options:
 *g:todo_mcp_ui_height*          Popup window height
 *g:todo_mcp_ui_border*          Border style ('rounded', 'single', etc.)
 
+View Styles:                                     *todo-mcp-view-styles*
+
+The plugin supports multiple view styles through presets or custom config.
+
+PRESETS~
+• `minimal`     Clean, distraction-free view
+• `emoji`       Visual indicators with emoji (default)  
+• `sections`    Grouped by priority/status
+• `compact`     Dense, keyboard-friendly
+• `ascii`       Terminal-safe ASCII characters
+
+Example configurations: >lua
+    -- Use a preset
+    ui = { style = { preset = "minimal" } }
+    
+    -- Custom style
+    ui = {
+      style = {
+        status_indicators = {
+          todo = "▷",
+          in_progress = "▶", 
+          done = "■"
+        },
+        priority_style = "bracket", -- [H] [M] [L]
+        layout = "priority_sections"
+      }
+    }
+<
+
+STATUS INDICATORS~
+• todo: "○", "[ ]", "•", "-", " "
+• in_progress: "◐", "[~]", "›", ">", "▶"
+• done: "●", "[x]", "✓", "✗", "■"
+
+PRIORITY STYLES~
+• `emoji`: 🔥⚡💤
+• `color`: Uses highlight groups
+• `symbol`: !!! !! !
+• `bracket`: [H] [M] [L]
+• `none`: Hide priority
+
+LAYOUTS~
+• `flat`: Simple list
+• `grouped`: Group by status  
+• `priority_sections`: Sections by priority
+
 ==============================================================================
 5. USAGE                                                       *todo-mcp-usage*
 
@@ -134,13 +180,13 @@ Advanced features:
 
 *:TodoMCP*                      Open the todo list popup
 
-*:TodoMCP-export* {format}      Export todos to file
+*:TodoMCPExport* {format}       Export todos to file
     Formats: markdown, json, yaml, all
-    Example: `:TodoMCP export markdown`
+    Example: `:TodoMCPExport markdown`
 
-*:TodoMCP-import* {format} [file]   Import todos from file
+*:TodoMCPImport* {format} [file]   Import todos from file
     Formats: markdown, json
-    Example: `:TodoMCP import json ~/todos.json`
+    Example: `:TodoMCPImport json ~/todos.json`
 
 ==============================================================================
 7. KEYMAPS                                                   *todo-mcp-keymaps*
@@ -241,7 +287,26 @@ Available MCP tools:
     Export todos to ~/todos.yaml
 
 ==============================================================================
-10. LICENSE                                                   *todo-mcp-license*
+10. HIGHLIGHT GROUPS                                     *todo-mcp-highlights*
+
+The plugin defines these highlight groups for customization:
+
+*TodoPriorityHigh*      High priority items (default: red, bold)
+*TodoPriorityMedium*    Medium priority items (default: yellow, bold)
+*TodoPriorityLow*       Low priority items (default: green)
+*TodoDone*              Completed items (default: gray, italic)
+*TodoInProgress*        Active items (default: cyan, bold)
+*TodoMetadata*          Tags and file refs (default: gray, italic)
+*TodoTag*               Tag text (default: blue)
+*TodoFile*              File references (default: purple, underline)
+
+Customize in your config: >lua
+    vim.api.nvim_set_hl(0, "TodoPriorityHigh", { fg = "#ff0000", bold = true })
+    vim.api.nvim_set_hl(0, "TodoDone", { fg = "#808080", strikethrough = true })
+<
+
+==============================================================================
+11. LICENSE                                                   *todo-mcp-license*
 
 MIT License
 

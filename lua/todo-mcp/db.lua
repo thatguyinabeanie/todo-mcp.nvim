@@ -44,7 +44,7 @@ M.get_all = function()
   
   -- Use table API to get all todos
   local todos = todos_tbl:get({
-    select = { "id", "title", "content", "status", "done", "priority", "tags", "file_path", "line_number", "created_at", "updated_at", "completed_at" },
+    select = { "id", "title", "content", "status", "done", "priority", "tags", "file_path", "line_number", "metadata", "frontmatter_raw", "created_at", "updated_at", "completed_at" },
     order_by = {
       asc = { "done", "created_at" }
     }
@@ -78,6 +78,8 @@ M.add = function(content, options)
     tags = options.tags or "",
     file_path = options.file_path,
     line_number = options.line_number,
+    metadata = options.metadata or "{}",
+    frontmatter_raw = options.frontmatter_raw,
     created_at = schema.timestamp(),
     updated_at = schema.timestamp(),
     completed_at = options.completed_at
@@ -123,6 +125,26 @@ M.update = function(id, updates)
   
   if updates.line_number then
     update_data.line_number = updates.line_number
+  end
+  
+  if updates.metadata then
+    update_data.metadata = updates.metadata
+  end
+  
+  if updates.frontmatter_raw then
+    update_data.frontmatter_raw = updates.frontmatter_raw
+  end
+  
+  if updates.title then
+    update_data.title = updates.title
+  end
+  
+  if updates.status then
+    update_data.status = updates.status
+  end
+  
+  if updates.completed_at then
+    update_data.completed_at = updates.completed_at
   end
   
   if next(update_data) then
@@ -187,7 +209,7 @@ M.search = function(query, filters)
   end
   
   -- Build SQL query
-  local sql = "SELECT id, title, content, status, done, priority, tags, file_path, line_number, created_at, updated_at, completed_at FROM todos"
+  local sql = "SELECT id, title, content, status, done, priority, tags, file_path, line_number, metadata, frontmatter_raw, created_at, updated_at, completed_at FROM todos"
   if #where_parts > 0 then
     sql = sql .. " WHERE " .. table.concat(where_parts, " AND ")
   end

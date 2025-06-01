@@ -17,7 +17,17 @@ M.setup = function(opts)
       width = 80,
       height = 30,
       border = "rounded",
-      view_mode = "markdown", -- "list" or "markdown"
+      view_mode = "list", -- "list" or "markdown"
+      style = {
+        preset = "emoji", -- minimal | emoji | sections | compact | ascii
+        -- Custom overrides (optional)
+        -- status_indicators = { todo = "○", in_progress = "◐", done = "✓" },
+        -- priority_style = "emoji", -- emoji | color | symbol | bracket | none
+        -- layout = "grouped", -- flat | grouped | priority_sections
+        -- show_metadata = true,
+        -- show_timestamps = "relative", -- relative | absolute | none
+        -- done_style = "dim", -- dim | strikethrough | hide
+      }
     },
     -- Internal keymaps (for todo list popup)
     keymaps = {

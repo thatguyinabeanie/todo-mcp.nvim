@@ -14,7 +14,14 @@ M.state = {
 
 M.setup = function(config)
   M.config = config
-  M.config.view_mode = config.view_mode or "markdown" -- "list" or "markdown"
+  M.config.view_mode = config.view_mode or "list" -- "list" or "markdown"
+  
+  -- Setup view style
+  local views = require("todo-mcp.views")
+  M.style = views.get_style(config)
+  
+  -- Setup highlights
+  views.setup_highlights()
 end
 
 M.toggle = function()
@@ -95,60 +102,42 @@ M.refresh = function()
     -- Set filetype for syntax highlighting
     api.nvim_buf_set_option(M.state.buf, "filetype", "markdown")
   else
-    -- Original list view
+    -- Use new view system
+    local views = require("todo-mcp.views")
+    
     -- Add title bar
     local title = "📝 Todo List"
     if #M.state.todos > 0 then
       local done_count = 0
       for _, todo in ipairs(M.state.todos) do
-        if todo.done then done_count = done_count + 1 end
+        if todo.done or todo.status == "done" then done_count = done_count + 1 end
       end
       title = title .. " (" .. done_count .. "/" .. #M.state.todos .. " done)"
     end
     table.insert(lines, title)
-    table.insert(lines, string.rep("═", #title))
+    table.insert(lines, string.rep("═", vim.fn.strwidth(title)))
     table.insert(lines, "")
-  end
-  
-  -- Add search header if active
-  if M.state.search_active then
-    local search_line = "🔍 Search: " .. M.state.search_query
-    if next(M.state.search_filters) then
-      local filter_parts = {}
-      for k, v in pairs(M.state.search_filters) do
-        table.insert(filter_parts, k .. ":" .. tostring(v))
+    
+    -- Add search header if active  
+    if M.state.search_active then
+      local search_line = "🔍 Search: " .. M.state.search_query
+      if next(M.state.search_filters) then
+        local filter_parts = {}
+        for k, v in pairs(M.state.search_filters) do
+          table.insert(filter_parts, k .. ":" .. tostring(v))
+        end
+        search_line = search_line .. " [" .. table.concat(filter_parts, ", ") .. "]"
       end
-      search_line = search_line .. " [" .. table.concat(filter_parts, ", ") .. "]"
-    end
-    table.insert(lines, search_line)
-    table.insert(lines, string.rep("─", #search_line))
-  end
-  
-  for i, todo in ipairs(M.state.todos) do
-    local prefix = todo.done and "✓" or "○"
-    local line = string.format("%s %s", prefix, todo.content)
-    
-    -- Add priority and tags
-    local meta = {}
-    if todo.priority and todo.priority ~= "medium" then
-      table.insert(meta, "!" .. todo.priority)
-    end
-    if todo.tags and todo.tags ~= "" then
-      table.insert(meta, "#" .. todo.tags)
-    end
-    if todo.file_path then
-      local file_display = vim.fn.fnamemodify(todo.file_path, ":t")
-      if todo.line_number then
-        file_display = file_display .. ":" .. todo.line_number
-      end
-      table.insert(meta, "@" .. file_display)
+      table.insert(lines, search_line)
+      table.insert(lines, string.rep("─", vim.fn.strwidth(search_line)))
+      table.insert(lines, "")
     end
     
-    if #meta > 0 then
-      line = line .. " " .. table.concat(meta, " ")
+    -- Render todos using the configured style
+    local todo_lines = views.render_todos(M.state.todos, M.style)
+    for _, line in ipairs(todo_lines) do
+      table.insert(lines, line)
     end
-    
-    table.insert(lines, line)
   end
   
   if #lines == 0 then

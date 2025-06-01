@@ -11,6 +11,8 @@ M.todos_schema = {
   tags = {"text", default = ""},
   file_path = "text",
   line_number = "int",
+  metadata = "text", -- JSON storage for arbitrary frontmatter fields
+  frontmatter_raw = "text", -- Original YAML frontmatter for fidelity
   created_at = {"text", default = "CURRENT_TIMESTAMP"},
   updated_at = {"text", default = "CURRENT_TIMESTAMP"},
   completed_at = "text", -- New: timestamp when completed
@@ -28,6 +30,8 @@ M.todos_sql = [[
     tags TEXT DEFAULT '',
     file_path TEXT,
     line_number INTEGER,
+    metadata TEXT DEFAULT '{}',
+    frontmatter_raw TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP
