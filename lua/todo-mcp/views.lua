@@ -17,9 +17,9 @@ M.presets = {
   
   emoji = {
     status_indicators = {
-      todo = "○",
+      todo = "◯",
       in_progress = "◐",
-      done = "✓"
+      done = "✅"
     },
     priority_style = "emoji",
     priority_indicators = {
@@ -85,6 +85,24 @@ M.presets = {
     show_metadata = true,
     show_timestamps = "none",
     done_style = "strikethrough"
+  },
+  
+  modern = {
+    status_indicators = {
+      todo = "●",
+      in_progress = "◐",
+      done = "✓"
+    },
+    priority_style = "modern",
+    priority_indicators = {
+      high = "▲",
+      medium = "■",
+      low = "▼"
+    },
+    layout = "priority_sections",
+    show_metadata = true,
+    show_timestamps = "relative",
+    done_style = "dim"
   }
 }
 
@@ -96,8 +114,8 @@ M.get_style = function(config)
   if config.style and config.style.preset and M.presets[config.style.preset] then
     style = vim.tbl_deep_extend("force", {}, M.presets[config.style.preset])
   else
-    -- Default to emoji preset
-    style = vim.tbl_deep_extend("force", {}, M.presets.emoji)
+    -- Default to modern preset for better visual hierarchy
+    style = vim.tbl_deep_extend("force", {}, M.presets.modern)
   end
   
   -- Override with custom settings
@@ -326,19 +344,29 @@ end
 
 -- Setup highlight groups
 M.setup_highlights = function()
-  -- Priority highlights
-  vim.api.nvim_set_hl(0, "TodoPriorityHigh", { fg = "#ff6b6b", bold = true })
-  vim.api.nvim_set_hl(0, "TodoPriorityMedium", { fg = "#ffd93d", bold = true })
-  vim.api.nvim_set_hl(0, "TodoPriorityLow", { fg = "#6bcf7f" })
+  -- Priority highlights with modern colors
+  vim.api.nvim_set_hl(0, "TodoPriorityHigh", { fg = "#f38ba8", bold = true })
+  vim.api.nvim_set_hl(0, "TodoPriorityMedium", { fg = "#f9e2af", bold = true })
+  vim.api.nvim_set_hl(0, "TodoPriorityLow", { fg = "#a6e3a1" })
   
-  -- Status highlights
-  vim.api.nvim_set_hl(0, "TodoDone", { fg = "#6c757d", italic = true })
-  vim.api.nvim_set_hl(0, "TodoInProgress", { fg = "#4ecdc4", bold = true })
+  -- Status highlights with enhanced visual feedback
+  vim.api.nvim_set_hl(0, "TodoDone", { fg = "#6c7086", italic = true, strikethrough = true })
+  vim.api.nvim_set_hl(0, "TodoInProgress", { fg = "#74c7ec", bold = true })
+  vim.api.nvim_set_hl(0, "TodoActive", { fg = "#cdd6f4", bold = false })
   
   -- Metadata highlights
-  vim.api.nvim_set_hl(0, "TodoMetadata", { fg = "#95a5a6", italic = true })
-  vim.api.nvim_set_hl(0, "TodoTag", { fg = "#3498db" })
-  vim.api.nvim_set_hl(0, "TodoFile", { fg = "#9b59b6", underline = true })
+  vim.api.nvim_set_hl(0, "TodoMetadata", { fg = "#a6adc8", italic = true })
+  vim.api.nvim_set_hl(0, "TodoTag", { fg = "#89b4fa", bold = true })
+  vim.api.nvim_set_hl(0, "TodoFile", { fg = "#cba6f7", underline = true })
+  
+  -- Enhanced status indicators
+  vim.api.nvim_set_hl(0, "TodoStatusTodo", { fg = "#fab387" })
+  vim.api.nvim_set_hl(0, "TodoStatusProgress", { fg = "#74c7ec" })
+  vim.api.nvim_set_hl(0, "TodoStatusDone", { fg = "#a6e3a1" })
+  
+  -- Section headers
+  vim.api.nvim_set_hl(0, "TodoSectionHeader", { fg = "#89b4fa", bold = true })
+  vim.api.nvim_set_hl(0, "TodoSeparator", { fg = "#585b70" })
 end
 
 return M
