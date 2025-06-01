@@ -3,6 +3,9 @@
 -- Comprehensive test runner for todo-mcp.nvim
 -- Run with: lua tests/run_all_tests.lua
 
+-- Add the plugin to the Lua path
+package.path = package.path .. ";./lua/?.lua;./lua/?/init.lua"
+
 -- Load our minimal test framework
 require("tests.minimal_test_framework")
 

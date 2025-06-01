@@ -153,6 +153,27 @@ _G.it = it
 _G.before_each = before_each
 _G.assert = assert
 
+-- Mock sqlite.lua if not available
+if not pcall(require, "sqlite") then
+  package.loaded["sqlite"] = {
+    open = function(path)
+      return {
+        eval = function(self, sql, ...)
+          return {}
+        end,
+        tbl = function(self, name)
+          return {
+            insert = function(self, data) return 1 end,
+            update = function(self, opts) return true end,
+            remove = function(self, opts) return true end,
+            get = function(self, opts) return {} end
+          }
+        end
+      }
+    end
+  }
+end
+
 -- Mock vim if not in Neovim
 if not vim then
   _G.vim = {

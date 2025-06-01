@@ -82,8 +82,14 @@ describe("todo-mcp syntax validation", function()
         local tags = {}
         
         for i, line in ipairs(lines) do
-          -- Extract help tags (*tag*)
-          for tag in line:gmatch("%*([^*]+)%*") do
+          -- Extract help tags (*tag*) - only at start of line or after whitespace
+          for tag in line:gmatch("^%*([^*]+)%*") do
+            if tags[tag] then
+              error("Duplicate tag '" .. tag .. "' found on lines " .. tags[tag] .. " and " .. i)
+            end
+            tags[tag] = i
+          end
+          for tag in line:gmatch("%s%*([^*]+)%*") do
             if tags[tag] then
               error("Duplicate tag '" .. tag .. "' found on lines " .. tags[tag] .. " and " .. i)
             end
