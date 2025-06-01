@@ -254,7 +254,7 @@ Export & Help:
 
 Classic Navigation:
 *gg* / *G*                     Go to first/last todo
-*/*                            Search mode
+*/* (search-mode)              Search mode
 *n* / *N*                      Next/previous search result
 
 ==============================================================================
