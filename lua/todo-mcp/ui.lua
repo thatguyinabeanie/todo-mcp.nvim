@@ -179,7 +179,7 @@ M.refresh = function()
       -- Progress bar visualization
       local bar_width = 20
       local filled = math.floor((done_count / total) * bar_width)
-      local progress_bar = string.rep("▓", filled) .. string.rep("░", bar_width - filled)
+      local progress_bar = string.rep("=", filled) .. string.rep("-", bar_width - filled)
       
       title = title .. " (" .. done_count .. "/" .. total .. " done)"
       stats_line = string.format("    %s %d%% │ %d active │ %d in progress", 
