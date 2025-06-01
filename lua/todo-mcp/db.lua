@@ -64,6 +64,11 @@ M.setup = function(db_path)
 end
 
 M.get_all = function()
+  -- Ensure database is initialized
+  if not db then
+    return {}
+  end
+  
   -- Cache for 1 second to avoid excessive DB reads during UI updates
   local now = vim.loop.now()
   if cache.todos and (now - cache.last_update) < 1000 then
@@ -72,24 +77,39 @@ M.get_all = function()
   
   -- Get current table schema to know what columns exist
   local columns = {}
+  local select_sql = "SELECT * FROM todos" -- Default fallback
   local pragma = db:eval("PRAGMA table_info(todos)")
-  for _, col in ipairs(pragma) do
-    columns[col.name] = true
-  end
   
-  -- Build select list based on available columns
-  local select_cols = { "id", "content", "created_at", "updated_at" }
-  
-  -- Add optional columns if they exist
-  local optional_cols = { "title", "status", "priority", "tags", "file_path", "line_number", "metadata", "frontmatter_raw", "completed_at", "done" }
-  for _, col in ipairs(optional_cols) do
-    if columns[col] then
-      table.insert(select_cols, col)
+  -- Handle case where pragma query fails
+  if pragma and type(pragma) == "table" then
+    for _, col in ipairs(pragma) do
+      columns[col.name] = true
+    end
+    
+    -- Build select list based on available columns
+    local select_cols = {}
+    
+    -- Always include these basic columns if they exist
+    local basic_cols = { "id", "content", "created_at", "updated_at" }
+    for _, col in ipairs(basic_cols) do
+      if columns[col] then
+        table.insert(select_cols, col)
+      end
+    end
+    
+    -- Add optional columns if they exist
+    local optional_cols = { "title", "status", "priority", "tags", "file_path", "line_number", "metadata", "frontmatter_raw", "completed_at", "done" }
+    for _, col in ipairs(optional_cols) do
+      if columns[col] then
+        table.insert(select_cols, col)
+      end
+    end
+    
+    -- Use specific columns if we found any
+    if #select_cols > 0 then
+      select_sql = "SELECT " .. table.concat(select_cols, ", ") .. " FROM todos"
     end
   end
-  
-  -- Use raw SQL instead of table API to avoid schema issues
-  local select_sql = "SELECT " .. table.concat(select_cols, ", ") .. " FROM todos"
   
   -- Add ORDER BY clause
   if columns.status then
@@ -100,7 +120,26 @@ M.get_all = function()
     select_sql = select_sql .. " ORDER BY created_at ASC"
   end
   
-  local todos = db:eval(select_sql)
+  local todos = {}
+  local ok, result = pcall(function()
+    return db:eval(select_sql)
+  end)
+  
+  if ok and result and type(result) == "table" then
+    todos = result
+  else
+    -- Fallback to basic query
+    local fallback_ok, fallback_result = pcall(function()
+      return db:eval("SELECT * FROM todos ORDER BY created_at ASC")
+    end)
+    
+    if fallback_ok and fallback_result and type(fallback_result) == "table" then
+      todos = fallback_result
+    else
+      -- Final fallback: empty table
+      todos = {}
+    end
+  end
   
   -- Add missing fields with defaults for backward compatibility
   for _, todo in ipairs(todos) do
