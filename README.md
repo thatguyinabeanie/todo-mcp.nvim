@@ -4,21 +4,34 @@
 
 todo-mcp.nvim is the definitive bridge that transforms ephemeral TODO comments into persistent, actionable tasks with AI-powered insights and seamless external integrations.
 
-![GitHub stars](https://img.shields.io/github/stars/your-username/todo-mcp.nvim?style=social)
+![GitHub stars](https://img.shields.io/github/stars/thatguyinabeanie/todo-mcp.nvim?style=social)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Neovim](https://img.shields.io/badge/neovim-0.9.0+-green.svg)
 
 ## Features
 
-- 🚀 **Fast**: SQLite-backed for instant performance
-- 🤖 **MCP Support**: LLMs can read/write todos via Model Context Protocol
-- ⌨️ **Vim-friendly**: Intuitive keybindings and modal interface
-- 💾 **Persistent**: Todos stored in `~/.local/share/nvim/todo-mcp.db`
-- 🎨 **Clean UI**: Centered popup with minimal design
-- 🔍 **Search & Filter**: Find todos by content, priority, tags, or files
-- 🏷️ **Tags & Priorities**: Organize todos with metadata
-- 🔗 **Code Linking**: Link todos to specific files and line numbers
-- ⚡ **Lazy Loading**: Fast startup with proper lazy loading support
+### 🎨 **Modern UI Experience**
+- **Floating Preview Windows**: Live todo details with navigation
+- **Smooth Animations**: Fade transitions and responsive interactions
+- **Progress Visualization**: Real-time completion bars and statistics
+- **Modern Design**: Unicode borders, elegant typography, and visual hierarchy
+- **Multiple Themes**: 5 built-in presets (minimal, emoji, modern, sections, ascii)
+- **Enhanced Navigation**: j/k keys with automatic preview updates
+
+### 🚀 **Core Features**
+- **Fast Performance**: SQLite-backed for instant responsiveness
+- **MCP Integration**: LLMs can read/write todos via Model Context Protocol
+- **Vim-Native**: Intuitive keybindings and modal interface
+- **Persistent Storage**: Todos stored in `~/.local/share/nvim/todo-mcp.db`
+- **Smart Search**: Find todos by content, priority, tags, or files
+- **Rich Metadata**: Tags, priorities, timestamps, and file linking
+- **Lazy Loading**: Fast startup with proper lazy loading support
+
+### 🔌 **Enterprise Integrations**
+- **Linear**: Sync with modern development workflows
+- **GitHub**: Bridge code comments to GitHub issues
+- **JIRA**: Enterprise project management integration
+- **AI Analysis**: Context detection and smart categorization
 
 ## Installation
 
@@ -66,14 +79,27 @@ Alternative (no lazy loading):
 
 ### Inside Todo List
 
+**Navigation & Actions:**
+- `j/k` - Navigate with live preview updates
+- `<CR>` - Toggle todo done/undone
+- `p` - Toggle floating preview window
+
+**Todo Management:**
 - `a` - Add new todo
 - `A` - Add todo with priority/tags/file linking
-- `d` - Delete todo under cursor  
-- `<CR>` - Toggle todo done/undone
-- `/` - Search todos
+- `d` - Delete todo under cursor
+
+**Search & Navigation:**
+- `/` - Search todos with filters
 - `<C-c>` - Clear search
 - `gf` - Jump to linked file
-- `?` - Show help
+
+**Export & Help:**
+- `em` - Export to Markdown
+- `ej` - Export to JSON
+- `ey` - Export to YAML
+- `ea` - Export all formats
+- `?` - Show comprehensive help
 - `q` or `<Esc>` - Close popup
 
 ### Export/Import Commands
@@ -116,9 +142,17 @@ require("todo-mcp").setup({
     width = 80,
     height = 30,
     border = "rounded",
+    
+    -- Modern UI options (new!)
+    modern_ui = true,           -- Enable modern styling
+    animation_speed = 150,      -- Animation duration (ms)
+    floating_preview = true,    -- Show floating preview windows
+    preview_enabled = true,     -- Enable preview on navigation
+    status_line = true,         -- Status line integration
+    
     -- View style (see View Styles section below)
     style = {
-      preset = "emoji"  -- minimal | emoji | sections | compact | ascii
+      preset = "modern"  -- minimal | emoji | modern | sections | compact | ascii
     }
   },
   
@@ -154,11 +188,28 @@ The plugin supports multiple view styles to match your preference:
 ● Deploy to staging
 ```
 
-### Emoji (Default)
+### Modern (New Default)
+```
+📝 Todo Manager (2/5 done)
+    ▓▓▓▓░░░░░░░░░░░░░░░░ 40% │ 3 active │ 1 in progress
+─────────────────────────────────────────────────────
+
+## ▲ High Priority
+● 🔥 Fix parser bug @main.lua:42 #urgent
+
+## ■ Medium Priority  
+◐ ⚡ Update documentation
+○ 💤 Review pull requests
+
+## ✅ Completed
+✓ Deploy to staging
+```
+
+### Emoji
 ```
 ○ Buy milk
 ◐ 🔥 Fix parser bug @main.lua:42
-✓ 🚀 Deploy to staging
+✅ 🚀 Deploy to staging
 ```
 
 ### Sections
@@ -179,10 +230,46 @@ ui = {
   style = {
     status_indicators = { todo = "▷", in_progress = "▶", done = "■" },
     priority_style = "bracket",  -- Shows [H] [M] [L]
-    layout = "priority_sections"
-  }
+    layout = "priority_sections",
+    show_metadata = true,
+    show_timestamps = "relative",
+    done_style = "strikethrough"
+  },
+  
+  -- Modern UI customization
+  modern_ui = true,
+  animation_speed = 200,  -- Slower animations
+  floating_preview = false  -- Disable floating previews
 }
 ```
+
+## Preview System
+
+The new floating preview system shows rich todo details:
+
+```
+┌─ Preview ──────────────────────┐
+│ 📋 Fix parser bug              │
+│                                │
+│ Status: in_progress            │
+│ Priority: high                 │
+│ Created: 2 hours ago           │
+│                                │
+│ Content:                       │
+│ ─────────                      │
+│ The JSON parser fails when     │
+│ encountering nested arrays     │
+│ with special characters.       │
+│                                │
+│ Tags: urgent, parser           │
+│ File: ~/src/main.lua:42        │
+└────────────────────────────────┘
+```
+
+- **Auto-preview**: Shows on j/k navigation
+- **Toggle**: Press `p` to show/hide
+- **Rich details**: Content, metadata, file links
+- **Smart positioning**: Appears to the right of main window
 
 ## MCP Configuration
 
@@ -202,11 +289,23 @@ Add to your MCP configuration file:
 }
 ```
 
-## Requirements
+## Performance & Compatibility
 
-- Neovim 0.7+
+**Requirements:**
+- Neovim 0.7+ (0.9+ recommended for best experience)
 - SQLite3 (system command)
 - Lua 5.1+ or LuaJIT (for standalone MCP server)
+
+**Performance:**
+- **Instant startup**: Lazy loading with minimal impact
+- **Smooth animations**: Configurable 50-500ms transitions
+- **Efficient rendering**: Cached queries and optimized updates
+- **Memory conscious**: Automatic cleanup of preview windows
+
+**Terminal Support:**
+- **Modern terminals**: Full Unicode and color support
+- **Legacy terminals**: ASCII preset for compatibility
+- **SSH/Remote**: Works seamlessly over SSH connections
 
 ## License
 

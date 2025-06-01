@@ -361,6 +361,164 @@ Adding new integrations is straightforward:
 
 See `mcp-servers/linear-server.lua` as a reference implementation.
 
+## UI Customization & Themes
+
+### Modern UI Features (v2.0+)
+
+todo-mcp.nvim features a completely redesigned modern interface:
+
+#### 🎨 Floating Preview System
+- **Live previews** appear automatically when navigating with j/k
+- **Rich metadata display** showing status, priority, timestamps, and file links
+- **Smart positioning** that adapts to screen space
+- **Toggle control** with 'p' key for on-demand usage
+
+```lua
+require('todo-mcp').setup({
+  ui = {
+    floating_preview = true,    -- Enable floating previews
+    preview_enabled = true,     -- Auto-show on navigation
+    animation_speed = 150       -- Smooth transitions
+  }
+})
+```
+
+#### ✨ Visual Themes
+
+Choose from 6 built-in themes or create custom styling:
+
+**Modern Theme (Default):**
+```
+📝 Todo Manager (2/5 done)
+    ▓▓▓▓░░░░░░░░░░░░░░░░ 40% │ 3 active │ 1 in progress
+────────────────────────────────────────────────────────
+
+## ▲ High Priority
+● 🔥 Fix parser bug @main.lua:42 #urgent
+
+## ■ Medium Priority  
+◐ ⚡ Update documentation
+● 💤 Review pull requests
+
+## ✅ Completed
+✓ Deploy to staging
+```
+
+**Theme Options:**
+- `modern` - Enhanced visual hierarchy with progress bars
+- `emoji` - Colorful emoji indicators  
+- `minimal` - Clean, distraction-free
+- `sections` - Organized by priority sections
+- `compact` - Dense, keyboard-friendly
+- `ascii` - Terminal-safe characters
+
+#### 🎯 Custom Styling
+
+Create your own visual style:
+
+```lua
+ui = {
+  style = {
+    -- Custom status indicators
+    status_indicators = {
+      todo = "▷",
+      in_progress = "▶", 
+      done = "▣"
+    },
+    
+    -- Custom priority indicators
+    priority_style = "custom",
+    priority_indicators = {
+      high = "🚨",
+      medium = "⚠️", 
+      low = "📝"
+    },
+    
+    -- Layout options
+    layout = "priority_sections",  -- flat | grouped | priority_sections
+    show_metadata = true,          -- Show tags, file links, timestamps
+    show_timestamps = "relative",  -- relative | absolute | none
+    done_style = "strikethrough"   -- dim | strikethrough | hidden
+  }
+}
+```
+
+#### 🌈 Color Customization
+
+Override highlight groups for full color control:
+
+```lua
+-- Modern dark theme (Catppuccin-inspired)
+vim.api.nvim_set_hl(0, "TodoNormal", { bg = "#1e1e2e", fg = "#cdd6f4" })
+vim.api.nvim_set_hl(0, "TodoCursorLine", { bg = "#313244", bold = true })
+vim.api.nvim_set_hl(0, "TodoBorderCorner", { fg = "#89b4fa", bold = true })
+
+-- Priority colors
+vim.api.nvim_set_hl(0, "TodoPriorityHigh", { fg = "#f38ba8", bold = true })
+vim.api.nvim_set_hl(0, "TodoPriorityMedium", { fg = "#f9e2af", bold = true })
+vim.api.nvim_set_hl(0, "TodoPriorityLow", { fg = "#a6e3a1" })
+
+-- Status indicators
+vim.api.nvim_set_hl(0, "TodoDone", { fg = "#6c7086", italic = true, strikethrough = true })
+vim.api.nvim_set_hl(0, "TodoInProgress", { fg = "#74c7ec", bold = true })
+```
+
+#### 📊 Progress Visualization
+
+Real-time progress tracking in the title bar:
+
+- **Visual progress bars** showing completion percentage
+- **Active/in-progress counters** for workflow awareness  
+- **Color-coded indicators** for quick status recognition
+- **Automatic updates** on todo changes
+
+#### ⌨️ Enhanced Navigation
+
+Modern keyboard navigation with vim motions:
+
+- **j/k navigation** with automatic preview updates
+- **Smart cursor positioning** accounting for headers and sections
+- **Contextual help system** with beautifully styled popup windows
+- **Consistent keybindings** across all interface modes
+
+#### 📱 Status Line Integration
+
+Optional status line integration for constant progress awareness:
+
+```lua
+ui = {
+  status_line = true  -- Enable status line updates
+}
+
+-- In your status line config:
+vim.g.todo_mcp_status  -- Contains: "Todos: 3/8 done (38%)"
+```
+
+### Performance Options
+
+Balance features with performance for your environment:
+
+```lua
+-- High-performance setup (great for SSH/remote)
+ui = {
+  modern_ui = false,        -- Disable Unicode features
+  animation_speed = 0,      -- No animations
+  floating_preview = false, -- No floating windows
+  style = { preset = "ascii" }
+}
+
+-- Maximum features (modern terminals)
+ui = {
+  modern_ui = true,
+  animation_speed = 200,    -- Smooth animations
+  floating_preview = true,  -- Rich previews
+  status_line = true,       -- Status updates
+  style = { preset = "modern" }
+}
+```
+
+See `examples/ui-config.lua` for complete configuration examples and preset collections.
+
 ## Security Best Practices
 
 - ✅ Store API tokens in environment variables, not config files

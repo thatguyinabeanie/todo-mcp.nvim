@@ -12,7 +12,9 @@ CONTENTS                                                      *todo-mcp-contents
     7. Keymaps ................................... |todo-mcp-keymaps|
     8. MCP Integration ........................... |todo-mcp-mcp|
     9. API ....................................... |todo-mcp-api|
-    10. License .................................. |todo-mcp-license|
+    10. Modern UI Features ....................... |todo-mcp-modern-ui|
+    11. Highlight Groups ......................... |todo-mcp-highlights|
+    12. License .................................. |todo-mcp-license|
 
 ==============================================================================
 1. INTRODUCTION                                           *todo-mcp-introduction*
@@ -22,20 +24,25 @@ Context Protocol (MCP) support. This allows LLMs like Claude to read and manage
 your todo list directly.
 
 Features:
+• Modern UI with floating previews and smooth animations
 • Fast SQLite-backed storage for instant performance
-• MCP support for AI integration
-• Search and filtering capabilities
-• Priority levels and tags
-• Code-linked todos with file/line navigation
+• MCP support for AI integration and external tool bridging
+• Live preview system with j/k navigation
+• Progress visualization and completion tracking
+• Multiple visual themes (minimal, emoji, modern, sections, ascii)
+• Search and filtering capabilities with rich metadata
+• Priority levels, tags, and code linking
 • Export/import in multiple formats
+• Enterprise integrations (Linear, GitHub, JIRA)
 • Vim-friendly keybindings and modal interface
 
 ==============================================================================
 2. REQUIREMENTS                                           *todo-mcp-requirements*
 
-• Neovim 0.7+
+• Neovim 0.7+ (0.9+ recommended for best UI experience)
 • SQLite3 (system command)
 • kkharji/sqlite.lua plugin
+• Unicode-capable terminal (for modern UI)
 • Lua 5.1+ or LuaJIT (for standalone MCP server)
 
 ==============================================================================
@@ -84,6 +91,19 @@ Default configuration: >lua
         width = 80,
         height = 30,
         border = "rounded",
+        
+        -- Modern UI options (new in v2.0)
+        modern_ui = true,           -- Enable modern styling
+        animation_speed = 150,      -- Animation duration (ms)
+        floating_preview = true,    -- Show floating preview windows
+        preview_enabled = true,     -- Enable preview on navigation
+        status_line = true,         -- Status line integration
+        view_mode = "list",         -- "list" or "markdown"
+        
+        -- View styling
+        style = {
+          preset = "modern"  -- minimal | emoji | modern | sections | compact | ascii
+        }
       },
       
       -- Keymaps
@@ -115,10 +135,11 @@ View Styles:                                     *todo-mcp-view-styles*
 The plugin supports multiple view styles through presets or custom config.
 
 PRESETS~
+• `modern`      Enhanced visual hierarchy with progress bars (new default)
 • `minimal`     Clean, distraction-free view
-• `emoji`       Visual indicators with emoji (default)  
-• `sections`    Grouped by priority/status
-• `compact`     Dense, keyboard-friendly
+• `emoji`       Visual indicators with emoji
+• `sections`    Grouped by priority/status with headers
+• `compact`     Dense, keyboard-friendly layout
 • `ascii`       Terminal-safe ASCII characters
 
 Example configurations: >lua
@@ -208,23 +229,33 @@ Custom keymap examples: >lua
 
 Inside the todo list popup:
 
+Navigation & Actions:
+*j* / *k*                      Navigate with live preview updates
+*<CR>*                         Toggle todo done/undone
+*p*                            Toggle floating preview window
+
+Todo Management:
 *a*                            Add new todo
 *A*                            Add todo with priority/tags/file linking
 *d*                            Delete todo under cursor
-*<CR>*                         Toggle todo done/undone
-*/*                            Search todos
+
+Search & Navigation:
+*/*                            Search todos with filters
 *<C-c>*                        Clear search
 *gf*                           Jump to linked file
+
+Export & Help:
 *em*                           Export to Markdown
 *ej*                           Export to JSON
 *ey*                           Export to YAML
 *ea*                           Export all formats
-*?*                            Show help
+*?*                            Show comprehensive help window
 *q* or *<Esc>*                 Close popup
 
-Navigation:
-*j* / *k*                      Move up/down
+Classic Navigation:
 *gg* / *G*                     Go to first/last todo
+*/*                            Search mode
+*n* / *N*                      Next/previous search result
 
 ==============================================================================
 8. MCP INTEGRATION                                               *todo-mcp-mcp*
@@ -287,26 +318,123 @@ Available MCP tools:
     Export todos to ~/todos.yaml
 
 ==============================================================================
-10. HIGHLIGHT GROUPS                                     *todo-mcp-highlights*
+10. MODERN UI FEATURES                                   *todo-mcp-modern-ui*
+
+The v2.0 update introduces a comprehensive modern UI experience:
+
+FLOATING PREVIEW SYSTEM~                               *todo-mcp-preview-system*
+
+The floating preview system shows rich todo details alongside the main list:
+
+• Auto-preview on j/k navigation
+• Toggle with 'p' key
+• Rich metadata display (status, priority, timestamps, tags)
+• File linking with jump-to-line support
+• Smart positioning to avoid screen edges
+
+SMOOTH ANIMATIONS~                                      *todo-mcp-animations*
+
+Configurable animations enhance the user experience:
+
+• Fade transitions on window open/close
+• Smooth scrolling in supported terminals
+• Configurable speed (50-500ms)
+• Disable with `animation_speed = 0`
+
+PROGRESS VISUALIZATION~                                 *todo-mcp-progress*
+
+Real-time progress tracking in the title bar:
+
+• Visual progress bars with completion percentage
+• Active/in-progress/completed counters
+• Color-coded status indicators
+• Automatic updates on todo changes
+
+MODERN THEMES~                                          *todo-mcp-themes*
+
+Enhanced visual themes with Unicode characters:
+
+• Modern preset: Geometric indicators with priority sections
+• Enhanced borders: Unicode box-drawing characters
+• Rich typography: Better spacing and visual hierarchy
+• Color consistency: Catppuccin-inspired color palette
+
+STATUS LINE INTEGRATION~                                *todo-mcp-statusline*
+
+Optional status line integration shows todo statistics:
+
+• Completion percentage display
+• Total/completed todo counts
+• Automatic updates on changes
+• Compatible with popular status line plugins
+
+Configure status line integration: >lua
+    ui = {
+      status_line = true  -- Enable status line integration
+    }
+    
+    -- In your status line config:
+    vim.g.todo_mcp_status  -- Contains formatted status text
+<
+
+KEYBOARD ENHANCEMENTS~                                  *todo-mcp-keyboard*
+
+Enhanced keyboard navigation with vim motions:
+
+• j/k navigation with automatic preview updates
+• Smart cursor positioning accounting for headers
+• Contextual help system with styled popup
+• Consistent keybindings across all modes
+
+==============================================================================
+11. HIGHLIGHT GROUPS                                     *todo-mcp-highlights*
 
 The plugin defines these highlight groups for customization:
 
-*TodoPriorityHigh*      High priority items (default: red, bold)
+PRIORITY HIGHLIGHTS~
+*TodoPriorityHigh*      High priority items (default: pink, bold)
 *TodoPriorityMedium*    Medium priority items (default: yellow, bold)
 *TodoPriorityLow*       Low priority items (default: green)
-*TodoDone*              Completed items (default: gray, italic)
-*TodoInProgress*        Active items (default: cyan, bold)
-*TodoMetadata*          Tags and file refs (default: gray, italic)
-*TodoTag*               Tag text (default: blue)
+
+STATUS HIGHLIGHTS~
+*TodoDone*              Completed items (default: gray, italic, strikethrough)
+*TodoInProgress*        Active items (default: blue, bold)
+*TodoActive*            Regular todo items (default: white)
+
+METADATA HIGHLIGHTS~
+*TodoMetadata*          Tags and file refs (default: light gray, italic)
+*TodoTag*               Tag text (default: blue, bold)
 *TodoFile*              File references (default: purple, underline)
+
+STATUS INDICATORS~
+*TodoStatusTodo*        Todo status indicator (default: orange)
+*TodoStatusProgress*    In-progress indicator (default: blue)
+*TodoStatusDone*        Done status indicator (default: green)
+
+MODERN UI HIGHLIGHTS~
+*TodoNormal*            Main window background (default: dark)
+*TodoCursorLine*        Selected line highlight (default: dark gray, bold)
+*TodoFading*            Fade animation highlight (default: very dark)
+*TodoBorderCorner*      Border corners (default: blue, bold)
+*TodoBorderHorizontal*  Horizontal borders (default: cyan)
+*TodoBorderVertical*    Vertical borders (default: cyan)
+*TodoProgressFilled*    Filled progress bar (default: green, bold)
+*TodoProgressEmpty*     Empty progress bar (default: dark gray)
+*TodoTitleBar*          Title text (default: blue, bold)
+*TodoStats*             Statistics text (default: yellow, italic)
+*TodoFooter*            Footer text (default: purple, italic)
+*TodoSectionHeader*     Section headers (default: blue, bold)
+*TodoSeparator*         Separator lines (default: gray)
 
 Customize in your config: >lua
     vim.api.nvim_set_hl(0, "TodoPriorityHigh", { fg = "#ff0000", bold = true })
     vim.api.nvim_set_hl(0, "TodoDone", { fg = "#808080", strikethrough = true })
+    vim.api.nvim_set_hl(0, "TodoNormal", { bg = "#1e1e2e", fg = "#cdd6f4" })
+    vim.api.nvim_set_hl(0, "TodoBorderCorner", { fg = "#89b4fa", bold = true })
 <
 
 ==============================================================================
-11. LICENSE                                                   *todo-mcp-license*
+12. LICENSE                                                   *todo-mcp-license*
 
 MIT License
 
