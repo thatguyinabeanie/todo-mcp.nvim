@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  syntax-check:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Lua
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: "5.1"
+    
+    - name: Check Lua syntax
+      run: make check-syntax
+    
+    - name: Check common issues
+      run: make check-common
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Lua
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: "5.1"
+    
+    - name: Setup LuaRocks
+      uses: leafo/gh-actions-luarocks@v4
+    
+    - name: Install dependencies
+      run: |
+        luarocks install busted
+        luarocks install luacheck
+    
+    - name: Run validation tests
+      run: make test-validate
+    
+    - name: Run linting
+      run: make lint
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        neovim_version: ['v0.7.0', 'v0.8.0', 'v0.9.0', 'nightly']
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Neovim
+      uses: rhysd/action-setup-nvim@v1
+      with:
+        neovim: true
+        version: ${{ matrix.neovim_version }}
+    
+    - name: Install sqlite.lua
+      run: |
+        mkdir -p ~/.local/share/nvim/site/pack/test/start
+        cd ~/.local/share/nvim/site/pack/test/start
+        git clone https://github.com/kkharji/sqlite.lua
+    
+    - name: Run Neovim tests
+      run: |
+        nvim --version
+        nvim --headless -c "lua require('tests.run_tests')()" -c "qa!"

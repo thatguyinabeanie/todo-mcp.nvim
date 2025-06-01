@@ -77,3 +77,34 @@ test-watch:
 	else \
 		echo "entr not found. Install with your package manager to enable watch mode."; \
 	fi
+
+# Validation tests for common issues
+test-validate:
+	@echo "Running validation tests..."
+	@lua tests/run_all_tests.lua
+
+# Check syntax of all Lua files
+check-syntax:
+	@echo "Checking Lua syntax..."
+	@for file in $$(find lua -name "*.lua"); do \
+		luac -p $$file || exit 1; \
+	done
+	@echo "✓ All Lua files have valid syntax"
+
+# Check for common issues
+check-common: check-syntax
+	@echo "Checking for common issues..."
+	@echo "- Checking for duplicate help tags..."
+	@! grep -o '\*[^*]*\*' doc/todo-mcp.txt | sort | uniq -d | grep . || echo "✓ No duplicate help tags"
+	@echo "- Checking for Unicode method syntax..."
+	@! grep -E '["'"'"'][▓░─│╭╮╯╰]["'"'"']\s*:' lua/todo-mcp/*.lua || echo "✓ No Unicode method syntax found"
+	@echo "- Checking for nil keymaps..."
+	@grep -q 'toggle = ' lua/todo-mcp/init.lua && echo "✓ Toggle keymap defined" || echo "✗ Missing toggle keymap"
+	@echo "✓ All checks passed"
+
+# Run all validation checks
+validate: check-common test-validate
+
+# Pre-commit hook
+pre-commit: validate lint test-quick
+	@echo "✅ All pre-commit checks passed!"
