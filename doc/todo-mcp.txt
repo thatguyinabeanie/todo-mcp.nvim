@@ -134,11 +134,11 @@ Advanced features:
 
 *:TodoMCP*                      Open the todo list popup
 
-*:TodoMCP* export {format}      Export todos to file
+*:TodoMCP-export* {format}      Export todos to file
     Formats: markdown, json, yaml, all
     Example: `:TodoMCP export markdown`
 
-*:TodoMCP* import {format} [file]   Import todos from file
+*:TodoMCP-import* {format} [file]   Import todos from file
     Formats: markdown, json
     Example: `:TodoMCP import json ~/todos.json`
 
