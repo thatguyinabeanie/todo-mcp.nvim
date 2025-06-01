@@ -31,6 +31,10 @@ M.setup = function(db_path)
   -- Create table directly with SQL first (more reliable)
   db:eval(schema.todos_sql)
   
+  -- Run migrations to update schema
+  local migrate = require("todo-mcp.migrate")
+  migrate.migrate(db)
+  
   -- Then create table handle for operations
   todos_tbl = db:tbl("todos")
 end
