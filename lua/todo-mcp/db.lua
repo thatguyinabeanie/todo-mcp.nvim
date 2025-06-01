@@ -70,8 +70,8 @@ M.add = function(content)
     updated_at = schema.timestamp()
   })
   
-  -- Return the inserted ID
-  return result and result.id or nil
+  -- sqlite.lua returns the ID directly as a number
+  return result
 end
 
 M.update = function(id, updates)

@@ -150,7 +150,8 @@ if has_sqlite then
         created_at = timestamp,
         updated_at = timestamp
       })
-      return result and result.id or nil
+      -- sqlite.lua returns the ID directly as a number
+      return result
     end,
     
     update = function(id, content, done)
