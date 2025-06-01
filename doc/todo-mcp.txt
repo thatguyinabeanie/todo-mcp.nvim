@@ -240,7 +240,7 @@ Todo Management:
 *d*                            Delete todo under cursor
 
 Search & Navigation:
-*/*                            Search todos with filters
+*todo-search*                  Search todos with filters (/)
 *<C-c>*                        Clear search
 *gf*                           Jump to linked file
 
@@ -254,7 +254,7 @@ Export & Help:
 
 Classic Navigation:
 *gg* / *G*                     Go to first/last todo
-*/* (search-mode)              Search mode
+*search-mode*                  Search mode (/)
 *n* / *N*                      Next/previous search result
 
 ==============================================================================
