@@ -3,11 +3,12 @@ local M = {}
 
 -- Table schema for sqlite.lua
 M.todos_schema = {
-  id = { "integer", primary = true },
-  content = { "text", required = true },
-  done = { "integer", default = 0 },
-  created_at = { "text", default = "CURRENT_TIMESTAMP" },
-  updated_at = { "text", default = "CURRENT_TIMESTAMP" }
+  id = {"int", "primary", "key"},
+  content = "text",
+  done = {"int", default = 0},
+  created_at = {"text", default = "CURRENT_TIMESTAMP"},
+  updated_at = {"text", default = "CURRENT_TIMESTAMP"},
+  ensure = true
 }
 
 -- SQL for manual creation

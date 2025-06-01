@@ -28,11 +28,11 @@ M.setup = function(db_path)
   -- Open database
   db = sqlite:open(db_path)
   
-  -- Create table using shared schema
-  todos_tbl = db:tbl("todos", schema.todos_schema)
+  -- Create table directly with SQL first (more reliable)
+  db:eval(schema.todos_sql)
   
-  -- Ensure table exists
-  todos_tbl:create()
+  -- Then create table handle for operations
+  todos_tbl = db:tbl("todos")
 end
 
 M.get_all = function()
