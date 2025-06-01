@@ -44,7 +44,7 @@ M.get_all = function()
   
   -- Use table API to get all todos
   local todos = todos_tbl:get({
-    select = { "id", "content", "done", "created_at", "updated_at" },
+    select = { "id", "content", "done", "priority", "tags", "file_path", "line_number", "created_at", "updated_at" },
     order_by = {
       asc = { "done", "created_at" }
     }
@@ -60,18 +60,33 @@ M.get_all = function()
   return todos
 end
 
-M.add = function(content)
+M.add = function(content, options)
   clear_cache()
+  
+  options = options or {}
   
   -- Use table API to insert
   local result = todos_tbl:insert({
     content = content,
+    priority = options.priority or "medium",
+    tags = options.tags or "",
+    file_path = options.file_path,
+    line_number = options.line_number,
     created_at = schema.timestamp(),
     updated_at = schema.timestamp()
   })
   
-  -- sqlite.lua returns the ID directly as a number
-  return result
+  -- Handle different return types from sqlite.lua
+  if type(result) == "number" then
+    return result
+  elseif type(result) == "table" and result.last_insert_rowid then
+    return result.last_insert_rowid
+  elseif type(result) == "table" and result[1] then
+    return result[1].id or result[1]
+  else
+    -- Fallback: return the result as-is
+    return result
+  end
 end
 
 M.update = function(id, updates)
@@ -85,6 +100,22 @@ M.update = function(id, updates)
   
   if updates.done ~= nil then
     update_data.done = updates.done and 1 or 0
+  end
+  
+  if updates.priority then
+    update_data.priority = updates.priority
+  end
+  
+  if updates.tags then
+    update_data.tags = updates.tags
+  end
+  
+  if updates.file_path then
+    update_data.file_path = updates.file_path
+  end
+  
+  if updates.line_number then
+    update_data.line_number = updates.line_number
   end
   
   if next(update_data) then
@@ -109,6 +140,61 @@ M.delete = function(id)
   todos_tbl:remove({ id = id })
   
   return true
+end
+
+M.search = function(query, filters)
+  filters = filters or {}
+  
+  -- Build where clause
+  local where_parts = {}
+  local where_clause = {}
+  
+  -- Text search in content
+  if query and query ~= "" then
+    table.insert(where_parts, "content LIKE ?")
+    table.insert(where_clause, "%" .. query .. "%")
+  end
+  
+  -- Priority filter
+  if filters.priority then
+    table.insert(where_parts, "priority = ?")
+    table.insert(where_clause, filters.priority)
+  end
+  
+  -- Tags filter (simple contains check)
+  if filters.tags then
+    table.insert(where_parts, "tags LIKE ?")
+    table.insert(where_clause, "%" .. filters.tags .. "%")
+  end
+  
+  -- File filter
+  if filters.file_path then
+    table.insert(where_parts, "file_path LIKE ?")
+    table.insert(where_clause, "%" .. filters.file_path .. "%")
+  end
+  
+  -- Done status filter
+  if filters.done ~= nil then
+    table.insert(where_parts, "done = ?")
+    table.insert(where_clause, filters.done and 1 or 0)
+  end
+  
+  -- Build SQL query
+  local sql = "SELECT id, content, done, priority, tags, file_path, line_number, created_at, updated_at FROM todos"
+  if #where_parts > 0 then
+    sql = sql .. " WHERE " .. table.concat(where_parts, " AND ")
+  end
+  sql = sql .. " ORDER BY done ASC, created_at ASC"
+  
+  -- Execute query
+  local result = db:eval(sql, where_clause)
+  
+  -- Convert done field to boolean
+  for _, todo in ipairs(result) do
+    todo.done = todo.done == 1
+  end
+  
+  return result
 end
 
 M.toggle_done = function(id)

@@ -6,7 +6,10 @@ M.state = {
   buf = nil,
   win = nil,
   todos = {},
-  selected = 1
+  selected = 1,
+  search_active = false,
+  search_query = "",
+  search_filters = {}
 }
 
 M.setup = function(config)
@@ -73,19 +76,80 @@ M.refresh = function()
     return
   end
   
-  -- Get todos from database
-  M.state.todos = db.get_all()
+  -- Get todos from database (search or all)
+  if M.state.search_active and M.state.search_query ~= "" then
+    M.state.todos = db.search(M.state.search_query, M.state.search_filters)
+  else
+    M.state.todos = db.get_all()
+  end
   
   -- Render todos
   local lines = {}
+  
+  -- Add title bar
+  local title = "📝 Todo List"
+  if #M.state.todos > 0 then
+    local done_count = 0
+    for _, todo in ipairs(M.state.todos) do
+      if todo.done then done_count = done_count + 1 end
+    end
+    title = title .. " (" .. done_count .. "/" .. #M.state.todos .. " done)"
+  end
+  table.insert(lines, title)
+  table.insert(lines, string.rep("═", #title))
+  table.insert(lines, "")
+  
+  -- Add search header if active
+  if M.state.search_active then
+    local search_line = "🔍 Search: " .. M.state.search_query
+    if next(M.state.search_filters) then
+      local filter_parts = {}
+      for k, v in pairs(M.state.search_filters) do
+        table.insert(filter_parts, k .. ":" .. tostring(v))
+      end
+      search_line = search_line .. " [" .. table.concat(filter_parts, ", ") .. "]"
+    end
+    table.insert(lines, search_line)
+    table.insert(lines, string.rep("─", #search_line))
+  end
+  
   for i, todo in ipairs(M.state.todos) do
     local prefix = todo.done and "✓" or "○"
     local line = string.format("%s %s", prefix, todo.content)
+    
+    -- Add priority and tags
+    local meta = {}
+    if todo.priority and todo.priority ~= "medium" then
+      table.insert(meta, "!" .. todo.priority)
+    end
+    if todo.tags and todo.tags ~= "" then
+      table.insert(meta, "#" .. todo.tags)
+    end
+    if todo.file_path then
+      local file_display = vim.fn.fnamemodify(todo.file_path, ":t")
+      if todo.line_number then
+        file_display = file_display .. ":" .. todo.line_number
+      end
+      table.insert(meta, "@" .. file_display)
+    end
+    
+    if #meta > 0 then
+      line = line .. " " .. table.concat(meta, " ")
+    end
+    
     table.insert(lines, line)
   end
   
   if #lines == 0 then
-    lines = { "  No todos yet. Press 'a' to add one." }
+    lines = { 
+      "  No todos yet. Press 'a' to add one.",
+      "",
+      "  Quick commands: a=add A=add+ /=search ?=help q=quit"
+    }
+  else
+    -- Add footer with command hints
+    table.insert(lines, "")
+    table.insert(lines, "  a=add A=add+ /=search gf=jump ?=help q=quit")
   end
   
   api.nvim_buf_set_option(M.state.buf, "modifiable", true)
@@ -97,7 +161,14 @@ M.refresh = function()
     M.state.selected = math.max(1, #M.state.todos)
   end
   if M.state.win and api.nvim_win_is_valid(M.state.win) then
-    api.nvim_win_set_cursor(M.state.win, { M.state.selected, 0 })
+    -- Account for title and search header offset
+    local cursor_line = M.state.selected
+    local offset = 3 -- title + separator + blank line
+    if M.state.search_active then
+      offset = offset + 2 -- search line + separator
+    end
+    cursor_line = cursor_line + offset
+    api.nvim_win_set_cursor(M.state.win, { cursor_line, 0 })
   end
 end
 
@@ -118,6 +189,12 @@ M.setup_keymaps = function()
   -- Delete todo
   vim.keymap.set("n", keymaps.delete, function()
     local idx = api.nvim_win_get_cursor(M.state.win)[1]
+    -- Account for title and search header offset
+    local offset = 3 -- title + separator + blank line
+    if M.state.search_active then
+      offset = offset + 2 -- search line + separator
+    end
+    idx = idx - offset
     if M.state.todos[idx] then
       db.delete(M.state.todos[idx].id)
       M.refresh()
@@ -127,6 +204,12 @@ M.setup_keymaps = function()
   -- Toggle done
   vim.keymap.set("n", keymaps.toggle_done, function()
     local idx = api.nvim_win_get_cursor(M.state.win)[1]
+    -- Account for title and search header offset
+    local offset = 3 -- title + separator + blank line
+    if M.state.search_active then
+      offset = offset + 2 -- search line + separator
+    end
+    idx = idx - offset
     if M.state.todos[idx] then
       db.toggle_done(M.state.todos[idx].id)
       M.refresh()
@@ -150,14 +233,63 @@ M.setup_keymaps = function()
     require("todo-mcp.export").export_all()
   end, { buffer = buf, desc = "Export all formats" })
   
+  -- Search
+  vim.keymap.set("n", "/", function()
+    M.state.search_active = true
+    vim.ui.input({ prompt = "Search todos: " }, function(input)
+      if input then
+        M.state.search_query = input
+        M.refresh()
+      else
+        M.state.search_active = false
+        M.refresh()
+      end
+    end)
+  end, { buffer = buf, desc = "Search todos" })
+  
+  -- Clear search
+  vim.keymap.set("n", "<C-c>", function()
+    M.state.search_active = false
+    M.state.search_query = ""
+    M.state.search_filters = {}
+    M.refresh()
+  end, { buffer = buf, desc = "Clear search" })
+  
+  -- Add todo with options
+  vim.keymap.set("n", "A", function()
+    M.add_todo_with_options()
+  end, { buffer = buf, desc = "Add todo with priority/tags" })
+  
+  -- Jump to file
+  vim.keymap.set("n", "gf", function()
+    local idx = api.nvim_win_get_cursor(M.state.win)[1]
+    -- Account for title and search header offset
+    local offset = 3 -- title + separator + blank line
+    if M.state.search_active then
+      offset = offset + 2 -- search line + separator
+    end
+    idx = idx - offset
+    if M.state.todos[idx] and M.state.todos[idx].file_path then
+      M.close()
+      vim.cmd("edit " .. M.state.todos[idx].file_path)
+      if M.state.todos[idx].line_number then
+        vim.cmd(M.state.todos[idx].line_number)
+      end
+    end
+  end, { buffer = buf, desc = "Jump to linked file" })
+  
   -- Help
   vim.keymap.set("n", "?", function()
     local help = {
       "Todo List Keymaps:",
       "",
       "a       - Add new todo",
+      "A       - Add todo with priority/tags",
       "d       - Delete todo",
       "<CR>    - Toggle done/undone",
+      "/       - Search todos",
+      "<C-c>   - Clear search",
+      "gf      - Jump to linked file",
       "em      - Export to Markdown",
       "ej      - Export to JSON", 
       "ey      - Export to YAML",
@@ -171,6 +303,49 @@ M.setup_keymaps = function()
   -- Quit
   vim.keymap.set("n", keymaps.quit, M.close, { buffer = buf })
   vim.keymap.set("n", "<Esc>", M.close, { buffer = buf })
+end
+
+M.add_todo_with_options = function()
+  vim.ui.input({ prompt = "Todo content: " }, function(content)
+    if not content or content == "" then
+      return
+    end
+    
+    vim.ui.select({ "low", "medium", "high" }, { prompt = "Priority: " }, function(priority)
+      priority = priority or "medium"
+      
+      vim.ui.input({ prompt = "Tags (optional): " }, function(tags)
+        tags = tags or ""
+        
+        -- Get current file context
+        local current_file = vim.fn.expand("%:p")
+        local current_line = vim.fn.line(".")
+        
+        local options = {
+          priority = priority,
+          tags = tags
+        }
+        
+        -- Ask if they want to link to current file
+        if current_file ~= "" then
+          vim.ui.select({ "Yes", "No" }, { 
+            prompt = "Link to current file (" .. vim.fn.fnamemodify(current_file, ":t") .. ":" .. current_line .. ")? " 
+          }, function(choice)
+            if choice == "Yes" then
+              options.file_path = current_file
+              options.line_number = current_line
+            end
+            
+            db.add(content, options)
+            M.refresh()
+          end)
+        else
+          db.add(content, options)
+          M.refresh()
+        end
+      end)
+    end)
+  end)
 end
 
 return M

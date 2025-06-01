@@ -14,8 +14,8 @@ M.setup = function(opts)
     db_path = vim.fn.expand("~/.local/share/nvim/todo-mcp.db"),
     -- UI settings
     ui = {
-      width = 60,
-      height = 20,
+      width = 80,
+      height = 30,
       border = "rounded",
     },
     -- Keymaps

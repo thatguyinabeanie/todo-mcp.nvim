@@ -6,6 +6,10 @@ M.todos_schema = {
   id = {"int", "primary", "key"},
   content = "text",
   done = {"int", default = 0},
+  priority = {"text", default = "medium"},
+  tags = {"text", default = ""},
+  file_path = "text",
+  line_number = "int",
   created_at = {"text", default = "CURRENT_TIMESTAMP"},
   updated_at = {"text", default = "CURRENT_TIMESTAMP"},
   ensure = true
@@ -17,6 +21,10 @@ M.todos_sql = [[
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT NOT NULL,
     done INTEGER DEFAULT 0,
+    priority TEXT DEFAULT 'medium',
+    tags TEXT DEFAULT '',
+    file_path TEXT,
+    line_number INTEGER,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
