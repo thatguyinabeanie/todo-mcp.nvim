@@ -14,6 +14,7 @@ M.state = {
 
 M.setup = function(config)
   M.config = config
+  M.config.view_mode = config.view_mode or "markdown" -- "list" or "markdown"
 end
 
 M.toggle = function()
@@ -83,21 +84,31 @@ M.refresh = function()
     M.state.todos = db.get_all()
   end
   
-  -- Render todos
+  -- Render based on view mode
   local lines = {}
   
-  -- Add title bar
-  local title = "📝 Todo List"
-  if #M.state.todos > 0 then
-    local done_count = 0
-    for _, todo in ipairs(M.state.todos) do
-      if todo.done then done_count = done_count + 1 end
+  if M.config.view_mode == "markdown" then
+    -- Use markdown renderer
+    local markdown_ui = require("todo-mcp.markdown-ui")
+    lines = markdown_ui.render_list(M.state.todos)
+    
+    -- Set filetype for syntax highlighting
+    api.nvim_buf_set_option(M.state.buf, "filetype", "markdown")
+  else
+    -- Original list view
+    -- Add title bar
+    local title = "📝 Todo List"
+    if #M.state.todos > 0 then
+      local done_count = 0
+      for _, todo in ipairs(M.state.todos) do
+        if todo.done then done_count = done_count + 1 end
+      end
+      title = title .. " (" .. done_count .. "/" .. #M.state.todos .. " done)"
     end
-    title = title .. " (" .. done_count .. "/" .. #M.state.todos .. " done)"
+    table.insert(lines, title)
+    table.insert(lines, string.rep("═", #title))
+    table.insert(lines, "")
   end
-  table.insert(lines, title)
-  table.insert(lines, string.rep("═", #title))
-  table.insert(lines, "")
   
   -- Add search header if active
   if M.state.search_active then
@@ -278,6 +289,29 @@ M.setup_keymaps = function()
     end
   end, { buffer = buf, desc = "Jump to linked file" })
   
+  -- Open todo in markdown view
+  vim.keymap.set("n", "<CR>", function()
+    if M.config.view_mode == "markdown" then
+      local idx = M.get_cursor_todo_idx()
+      if M.state.todos[idx] then
+        local markdown_ui = require("todo-mcp.markdown-ui")
+        markdown_ui.open_todo(M.state.todos[idx])
+      end
+    else
+      -- Original toggle done behavior
+      local idx = api.nvim_win_get_cursor(M.state.win)[1]
+      local offset = 3
+      if M.state.search_active then
+        offset = offset + 2
+      end
+      idx = idx - offset
+      if M.state.todos[idx] then
+        db.toggle_done(M.state.todos[idx].id)
+        M.refresh()
+      end
+    end
+  end, { buffer = buf, desc = "Open todo / Toggle done" })
+  
   -- Help
   vim.keymap.set("n", "?", function()
     local help = {
@@ -303,6 +337,37 @@ M.setup_keymaps = function()
   -- Quit
   vim.keymap.set("n", keymaps.quit, M.close, { buffer = buf })
   vim.keymap.set("n", "<Esc>", M.close, { buffer = buf })
+end
+
+-- Helper to get todo index accounting for headers
+M.get_cursor_todo_idx = function()
+  local idx = api.nvim_win_get_cursor(M.state.win)[1]
+  
+  if M.config.view_mode == "markdown" then
+    -- In markdown mode, we need different offset calculation
+    -- TODO: Implement proper line-to-todo mapping for markdown view
+    -- For now, simple approach
+    local current_line = 0
+    local todo_idx = 0
+    local lines = api.nvim_buf_get_lines(M.state.buf, 0, -1, false)
+    
+    for i, line in ipairs(lines) do
+      if line:match("^###") then
+        todo_idx = todo_idx + 1
+        if i >= idx then
+          return todo_idx
+        end
+      end
+    end
+    return nil
+  else
+    -- Original offset calculation
+    local offset = 3 -- title + separator + blank line
+    if M.state.search_active then
+      offset = offset + 2 -- search line + separator
+    end
+    return idx - offset
+  end
 end
 
 M.add_todo_with_options = function()

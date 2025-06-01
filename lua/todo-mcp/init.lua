@@ -17,6 +17,7 @@ M.setup = function(opts)
       width = 80,
       height = 30,
       border = "rounded",
+      view_mode = "markdown", -- "list" or "markdown"
     },
     -- Internal keymaps (for todo list popup)
     keymaps = {

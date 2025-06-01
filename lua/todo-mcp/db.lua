@@ -44,7 +44,7 @@ M.get_all = function()
   
   -- Use table API to get all todos
   local todos = todos_tbl:get({
-    select = { "id", "content", "done", "priority", "tags", "file_path", "line_number", "created_at", "updated_at" },
+    select = { "id", "title", "content", "status", "done", "priority", "tags", "file_path", "line_number", "created_at", "updated_at", "completed_at" },
     order_by = {
       asc = { "done", "created_at" }
     }
@@ -65,15 +65,22 @@ M.add = function(content, options)
   
   options = options or {}
   
+  -- Extract title from content if not provided
+  local title = options.title or content:match("^[^\n]+") or "Untitled"
+  
   -- Use table API to insert
   local result = todos_tbl:insert({
-    content = content,
+    title = title,
+    content = options.content or content,
+    status = options.status or "todo",
+    done = options.done and 1 or 0,
     priority = options.priority or "medium",
     tags = options.tags or "",
     file_path = options.file_path,
     line_number = options.line_number,
     created_at = schema.timestamp(),
-    updated_at = schema.timestamp()
+    updated_at = schema.timestamp(),
+    completed_at = options.completed_at
   })
   
   -- Handle different return types from sqlite.lua
@@ -180,7 +187,7 @@ M.search = function(query, filters)
   end
   
   -- Build SQL query
-  local sql = "SELECT id, content, done, priority, tags, file_path, line_number, created_at, updated_at FROM todos"
+  local sql = "SELECT id, title, content, status, done, priority, tags, file_path, line_number, created_at, updated_at, completed_at FROM todos"
   if #where_parts > 0 then
     sql = sql .. " WHERE " .. table.concat(where_parts, " AND ")
   end
