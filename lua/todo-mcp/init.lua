@@ -31,6 +31,7 @@ M.setup = function(opts)
     },
     -- Internal keymaps (for todo list popup)
     keymaps = {
+      toggle = "<leader>td",  -- Global keymap to toggle todo list
       add = "a",
       delete = "d",
       toggle_done = "<CR>",
