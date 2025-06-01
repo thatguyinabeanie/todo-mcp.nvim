@@ -17,14 +17,30 @@ M.migrations = {
       end
       
       if not has_title then
-        -- Add new columns
-        db:eval("ALTER TABLE todos ADD COLUMN title TEXT")
-        db:eval("ALTER TABLE todos ADD COLUMN status TEXT DEFAULT 'todo'")
-        db:eval("ALTER TABLE todos ADD COLUMN metadata TEXT DEFAULT '{}'")
-        db:eval("ALTER TABLE todos ADD COLUMN frontmatter_raw TEXT")
-        db:eval("ALTER TABLE todos ADD COLUMN completed_at TEXT")
+        -- Get current columns to see what we're working with
+        local columns = {}
+        for _, col in ipairs(pragma) do
+          columns[col.name] = true
+        end
         
-        -- Migrate existing data
+        -- Add new columns if they don't exist
+        if not columns.title then
+          db:eval("ALTER TABLE todos ADD COLUMN title TEXT")
+        end
+        if not columns.status then
+          db:eval("ALTER TABLE todos ADD COLUMN status TEXT DEFAULT 'todo'")
+        end
+        if not columns.metadata then
+          db:eval("ALTER TABLE todos ADD COLUMN metadata TEXT DEFAULT '{}'")
+        end
+        if not columns.frontmatter_raw then
+          db:eval("ALTER TABLE todos ADD COLUMN frontmatter_raw TEXT")
+        end
+        if not columns.completed_at then
+          db:eval("ALTER TABLE todos ADD COLUMN completed_at TEXT")
+        end
+        
+        -- Migrate existing data for title
         db:eval([[
           UPDATE todos 
           SET title = substr(content, 1, 
@@ -34,12 +50,41 @@ M.migrations = {
               ELSE length(content) 
             END
           )
-          WHERE title IS NULL
+          WHERE title IS NULL OR title = ''
         ]])
         
-        -- Update status based on done field
-        db:eval("UPDATE todos SET status = 'done' WHERE done = 1")
-        db:eval("UPDATE todos SET status = 'todo' WHERE done = 0")
+        -- Update status based on done field if it exists
+        if columns.done then
+          db:eval("UPDATE todos SET status = 'done' WHERE done = 1 AND (status IS NULL OR status = '')")
+          db:eval("UPDATE todos SET status = 'todo' WHERE done = 0 AND (status IS NULL OR status = '')")
+        else
+          -- If no done column, set all to todo status
+          db:eval("UPDATE todos SET status = 'todo' WHERE status IS NULL OR status = ''")
+        end
+      end
+    end
+  },
+  
+  -- Migration 2: Add priority and tags columns
+  {
+    version = 2,
+    up = function(db)
+      -- Get current columns
+      local columns = {}
+      local pragma = db:eval("PRAGMA table_info(todos)")
+      for _, col in ipairs(pragma) do
+        columns[col.name] = true
+      end
+      
+      -- Add missing columns
+      if not columns.priority then
+        db:eval("ALTER TABLE todos ADD COLUMN priority TEXT DEFAULT 'medium'")
+        db:eval("UPDATE todos SET priority = 'medium' WHERE priority IS NULL")
+      end
+      
+      if not columns.tags then
+        db:eval("ALTER TABLE todos ADD COLUMN tags TEXT DEFAULT ''")
+        db:eval("UPDATE todos SET tags = '' WHERE tags IS NULL")
       end
     end
   }

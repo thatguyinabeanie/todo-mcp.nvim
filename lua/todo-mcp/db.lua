@@ -28,10 +28,19 @@ M.setup = function(db_path)
   -- Open database
   db = sqlite:open(db_path)
   
-  -- Create table directly with SQL first (more reliable)
-  db:eval(schema.todos_sql)
+  -- Check if this is a new database by seeing if todos table exists
+  local table_exists = false
+  local tables = db:eval("SELECT name FROM sqlite_master WHERE type='table' AND name='todos'")
+  if tables and #tables > 0 then
+    table_exists = true
+  end
   
-  -- Run migrations to update schema
+  if not table_exists then
+    -- New database - create with full schema
+    db:eval(schema.todos_sql)
+  end
+  
+  -- Run migrations to update existing schema
   local migrate = require("todo-mcp.migrate")
   migrate.migrate(db)
   
@@ -46,17 +55,65 @@ M.get_all = function()
     return cache.todos
   end
   
+  -- Get current table schema to know what columns exist
+  local columns = {}
+  local pragma = db:eval("PRAGMA table_info(todos)")
+  for _, col in ipairs(pragma) do
+    columns[col.name] = true
+  end
+  
+  -- Build select list based on available columns
+  local select_cols = { "id", "content", "created_at", "updated_at" }
+  
+  -- Add optional columns if they exist
+  local optional_cols = { "title", "status", "priority", "tags", "file_path", "line_number", "metadata", "frontmatter_raw", "completed_at", "done" }
+  for _, col in ipairs(optional_cols) do
+    if columns[col] then
+      table.insert(select_cols, col)
+    end
+  end
+  
   -- Use table API to get all todos
   local todos = todos_tbl:get({
-    select = { "id", "title", "content", "status", "done", "priority", "tags", "file_path", "line_number", "metadata", "frontmatter_raw", "created_at", "updated_at", "completed_at" },
+    select = select_cols,
     order_by = {
-      asc = { "done", "created_at" }
+      asc = columns.status and { "status", "created_at" } or columns.done and { "done", "created_at" } or { "created_at" }
     }
   })
   
-  -- Convert done field to boolean
+  -- Add missing fields with defaults for backward compatibility
   for _, todo in ipairs(todos) do
-    todo.done = todo.done == 1
+    -- Ensure title exists
+    if not todo.title and todo.content then
+      todo.title = todo.content:match("^([^\n]+)") or todo.content:sub(1, 50)
+    end
+    
+    -- Ensure status exists
+    if not todo.status then
+      if todo.done ~= nil then
+        todo.status = todo.done == 1 and "done" or "todo"
+      else
+        todo.status = "todo"
+      end
+    end
+    
+    -- Ensure priority exists
+    if not todo.priority then
+      todo.priority = "medium"
+    end
+    
+    -- Ensure tags exists
+    if not todo.tags then
+      todo.tags = ""
+    end
+    
+    -- Ensure metadata exists
+    if not todo.metadata then
+      todo.metadata = "{}"
+    end
+    
+    -- Add done field for backward compatibility
+    todo.done = todo.status == "done"
   end
   
   cache.todos = todos
