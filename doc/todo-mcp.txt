@@ -1,0 +1,249 @@
+*todo-mcp.txt*	A fast, SQLite-backed todo list plugin for Neovim with MCP support
+
+==============================================================================
+CONTENTS                                                      *todo-mcp-contents*
+
+    1. Introduction .............................. |todo-mcp-introduction|
+    2. Requirements .............................. |todo-mcp-requirements|
+    3. Installation .............................. |todo-mcp-installation|
+    4. Configuration ............................. |todo-mcp-configuration|
+    5. Usage ..................................... |todo-mcp-usage|
+    6. Commands .................................. |todo-mcp-commands|
+    7. Keymaps ................................... |todo-mcp-keymaps|
+    8. MCP Integration ........................... |todo-mcp-mcp|
+    9. API ....................................... |todo-mcp-api|
+    10. License .................................. |todo-mcp-license|
+
+==============================================================================
+1. INTRODUCTION                                           *todo-mcp-introduction*
+
+todo-mcp.nvim is a fast, SQLite-backed todo list plugin for Neovim with Model
+Context Protocol (MCP) support. This allows LLMs like Claude to read and manage
+your todo list directly.
+
+Features:
+• Fast SQLite-backed storage for instant performance
+• MCP support for AI integration
+• Search and filtering capabilities
+• Priority levels and tags
+• Code-linked todos with file/line navigation
+• Export/import in multiple formats
+• Vim-friendly keybindings and modal interface
+
+==============================================================================
+2. REQUIREMENTS                                           *todo-mcp-requirements*
+
+• Neovim 0.7+
+• SQLite3 (system command)
+• kkharji/sqlite.lua plugin
+• Lua 5.1+ or LuaJIT (for standalone MCP server)
+
+==============================================================================
+3. INSTALLATION                                           *todo-mcp-installation*
+
+Using lazy.nvim (with lazy loading): >lua
+    {
+      "thatguyinabeanie/todo-mcp.nvim",
+      dependencies = {
+        "kkharji/sqlite.lua",  -- Required for database operations
+      },
+      cmd = "TodoMCP",  -- Load on command
+      keys = {
+        { "<leader>td", "<Plug>(todo-mcp-toggle)", desc = "Toggle todo list" },
+        { "<leader>ta", "<Plug>(todo-mcp-add)", desc = "Add todo" },
+        { "<leader>tA", "<Plug>(todo-mcp-add-advanced)", desc = "Add todo with options" },
+      },
+      config = function()
+        require("todo-mcp").setup({
+          -- Optional configuration
+        })
+      end
+    }
+<
+
+Alternative configuration (no lazy loading): >lua
+    {
+      "thatguyinabeanie/todo-mcp.nvim",
+      dependencies = { "kkharji/sqlite.lua" },
+      config = function()
+        require("todo-mcp").setup()
+      end
+    }
+<
+
+==============================================================================
+4. CONFIGURATION                                         *todo-mcp-configuration*
+
+Default configuration: >lua
+    require("todo-mcp").setup({
+      -- Database location
+      db_path = vim.fn.expand("~/.local/share/nvim/todo-mcp.db"),
+      
+      -- UI settings
+      ui = {
+        width = 80,
+        height = 30,
+        border = "rounded",
+      },
+      
+      -- Keymaps
+      keymaps = {
+        toggle = "<leader>td",
+        add = "a",
+        delete = "d", 
+        toggle_done = "<CR>",
+        quit = "q",
+      },
+      
+      -- MCP server configuration
+      mcp_server = {
+        host = "localhost",
+        port = 3333,
+      },
+    })
+<
+
+Configuration options:
+
+*g:todo_mcp_db_path*            Database file location
+*g:todo_mcp_ui_width*           Popup window width
+*g:todo_mcp_ui_height*          Popup window height
+*g:todo_mcp_ui_border*          Border style ('rounded', 'single', etc.)
+
+==============================================================================
+5. USAGE                                                       *todo-mcp-usage*
+
+Basic workflow:
+1. Press `<leader>td` to open the todo list
+2. Press `a` to add a new todo
+3. Press `A` to add a todo with priority/tags/file linking
+4. Use `<CR>` to toggle todos done/undone
+5. Press `/` to search todos
+6. Press `gf` to jump to linked files
+7. Press `q` or `<Esc>` to close
+
+Advanced features:
+• Search by content, priority, tags, or files
+• Link todos to specific files and line numbers
+• Organize with priority levels (low, medium, high)
+• Tag todos for categorization
+• Export to markdown, JSON, or YAML
+
+==============================================================================
+6. COMMANDS                                                 *todo-mcp-commands*
+
+*:TodoMCP*                      Open the todo list popup
+
+*:TodoMCP* export {format}      Export todos to file
+    Formats: markdown, json, yaml, all
+    Example: `:TodoMCP export markdown`
+
+*:TodoMCP* import {format} [file]   Import todos from file
+    Formats: markdown, json
+    Example: `:TodoMCP import json ~/todos.json`
+
+==============================================================================
+7. KEYMAPS                                                   *todo-mcp-keymaps*
+
+Global <Plug> mappings (for lazy loading):                 *todo-mcp-plug-mappings*
+
+*<Plug>(todo-mcp-toggle)*      Toggle todo list popup
+*<Plug>(todo-mcp-add)*         Add new todo (with prompt)
+*<Plug>(todo-mcp-add-advanced)* Add todo with priority/tags/file linking
+
+Default global keymaps (can be disabled with g:todo_mcp_no_default_keymaps):
+*<leader>td*                   Toggle todo list (same as <Plug>(todo-mcp-toggle))
+
+Custom keymap examples: >lua
+    vim.keymap.set("n", "<leader>tt", "<Plug>(todo-mcp-toggle)")
+    vim.keymap.set("n", "<leader>ta", "<Plug>(todo-mcp-add)")
+    vim.keymap.set("n", "<leader>tA", "<Plug>(todo-mcp-add-advanced)")
+<
+
+Inside the todo list popup:
+
+*a*                            Add new todo
+*A*                            Add todo with priority/tags/file linking
+*d*                            Delete todo under cursor
+*<CR>*                         Toggle todo done/undone
+*/*                            Search todos
+*<C-c>*                        Clear search
+*gf*                           Jump to linked file
+*em*                           Export to Markdown
+*ej*                           Export to JSON
+*ey*                           Export to YAML
+*ea*                           Export all formats
+*?*                            Show help
+*q* or *<Esc>*                 Close popup
+
+Navigation:
+*j* / *k*                      Move up/down
+*gg* / *G*                     Go to first/last todo
+
+==============================================================================
+8. MCP INTEGRATION                                               *todo-mcp-mcp*
+
+Start the MCP server: >bash
+    lua ~/.local/share/nvim/plugged/todo-mcp.nvim/mcp-server.lua
+<
+
+MCP client configuration: >json
+    {
+      "mcpServers": {
+        "todo-mcp": {
+          "command": "lua",
+          "args": ["/path/to/todo-mcp.nvim/mcp-server.lua"],
+          "env": {
+            "TODO_MCP_DB": "~/.local/share/nvim/todo-mcp.db"
+          }
+        }
+      }
+    }
+<
+
+Available MCP tools:
+• `list_todos` - List all todos
+• `add_todo` - Add a new todo with metadata
+• `update_todo` - Update todo content or status
+• `delete_todo` - Delete a todo
+• `search_todos` - Search and filter todos
+
+==============================================================================
+9. API                                                           *todo-mcp-api*
+
+*require("todo-mcp").setup({opts})*
+    Initialize the plugin with configuration options.
+
+*require("todo-mcp.ui").toggle()*
+    Toggle the todo list popup.
+
+*require("todo-mcp.ui").open()*
+    Open the todo list popup.
+
+*require("todo-mcp.ui").close()*
+    Close the todo list popup.
+
+*require("todo-mcp.db").add({content}, {options})*
+    Add a new todo item.
+    Options: priority, tags, file_path, line_number
+
+*require("todo-mcp.db").search({query}, {filters})*
+    Search todos with optional filters.
+    Filters: priority, tags, file_path, done
+
+*require("todo-mcp.export").export_markdown()*
+    Export todos to ~/todos.md
+
+*require("todo-mcp.export").export_json()*
+    Export todos to ~/todos.json
+
+*require("todo-mcp.export").export_yaml()*
+    Export todos to ~/todos.yaml
+
+==============================================================================
+10. LICENSE                                                   *todo-mcp-license*
+
+MIT License
+
+==============================================================================
+vim:tw=78:ts=8:noet:ft=help:norl:

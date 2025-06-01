@@ -18,9 +18,8 @@ M.setup = function(opts)
       height = 30,
       border = "rounded",
     },
-    -- Keymaps
+    -- Internal keymaps (for todo list popup)
     keymaps = {
-      toggle = "<leader>td",
       add = "a",
       delete = "d",
       toggle_done = "<CR>",
@@ -28,11 +27,24 @@ M.setup = function(opts)
     },
   }, opts)
   
-  -- Initialize modules
+  -- Initialize modules lazily
   require("todo-mcp.db").setup(M.opts.db_path)
   require("todo-mcp.mcp").setup(M.opts.mcp_server)
   require("todo-mcp.ui").setup(M.opts.ui)
   require("todo-mcp.keymaps").setup(M.opts.keymaps)
+end
+
+-- Expose main functions for <Plug> mappings
+M.toggle = function()
+  return require("todo-mcp.ui").toggle()
+end
+
+M.add = function(content, options)
+  return require("todo-mcp.db").add(content, options)
+end
+
+M.add_with_options = function()
+  return require("todo-mcp.ui").add_todo_with_options()
 end
 
 return M

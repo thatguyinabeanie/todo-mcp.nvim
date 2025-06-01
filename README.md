@@ -9,10 +9,14 @@ A fast, SQLite-backed todo list plugin for Neovim with Model Context Protocol (M
 - ⌨️ **Vim-friendly**: Intuitive keybindings and modal interface
 - 💾 **Persistent**: Todos stored in `~/.local/share/nvim/todo-mcp.db`
 - 🎨 **Clean UI**: Centered popup with minimal design
+- 🔍 **Search & Filter**: Find todos by content, priority, tags, or files
+- 🏷️ **Tags & Priorities**: Organize todos with metadata
+- 🔗 **Code Linking**: Link todos to specific files and line numbers
+- ⚡ **Lazy Loading**: Fast startup with proper lazy loading support
 
 ## Installation
 
-Using [lazy.nvim](https://github.com/folke/lazy.nvim):
+Using [lazy.nvim](https://github.com/folke/lazy.nvim) with lazy loading:
 
 ```lua
 {
@@ -20,24 +24,50 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim):
   dependencies = {
     "kkharji/sqlite.lua",  -- Required for database operations
   },
+  cmd = "TodoMCP",  -- Load on command
+  keys = {
+    { "<leader>td", "<Plug>(todo-mcp-toggle)", desc = "Toggle todo list" },
+    { "<leader>ta", "<Plug>(todo-mcp-add)", desc = "Add todo" },
+    { "<leader>tA", "<Plug>(todo-mcp-add-advanced)", desc = "Add todo with options" },
+  },
   config = function()
     require("todo-mcp").setup({
-      keymaps = {
-        toggle = "<leader>td",  -- Toggle todo list
-      }
+      -- Configuration is optional
     })
+  end
+}
+```
+
+Alternative (no lazy loading):
+
+```lua
+{
+  "thatguyinabeanie/todo-mcp.nvim",
+  dependencies = { "kkharji/sqlite.lua" },
+  config = function()
+    require("todo-mcp").setup()
   end
 }
 ```
 
 ## Usage
 
-### In Neovim
+### Global Keymaps
 
 - `<leader>td` - Toggle todo list popup
+- `<leader>ta` - Add new todo (quick)
+- `<leader>tA` - Add todo with priority/tags/file linking
+
+### Inside Todo List
+
 - `a` - Add new todo
+- `A` - Add todo with priority/tags/file linking
 - `d` - Delete todo under cursor  
 - `<CR>` - Toggle todo done/undone
+- `/` - Search todos
+- `<C-c>` - Clear search
+- `gf` - Jump to linked file
+- `?` - Show help
 - `q` or `<Esc>` - Close popup
 
 ### Export/Import Commands
@@ -63,9 +93,10 @@ lua ~/.local/share/nvim/plugged/todo-mcp.nvim/mcp-server.lua
 
 3. Available MCP tools:
 - `list_todos` - List all todos
-- `add_todo` - Add a new todo
+- `add_todo` - Add a new todo with metadata
 - `update_todo` - Update todo content or status
 - `delete_todo` - Delete a todo
+- `search_todos` - Search and filter todos
 
 ## Configuration
 
@@ -76,20 +107,30 @@ require("todo-mcp").setup({
   
   -- UI settings
   ui = {
-    width = 60,
-    height = 20,
+    width = 80,
+    height = 30,
     border = "rounded",
   },
   
-  -- Keymaps
+  -- Internal keymaps (inside todo list popup)
   keymaps = {
-    toggle = "<leader>td",
     add = "a",
     delete = "d", 
     toggle_done = "<CR>",
     quit = "q",
   },
 })
+```
+
+### Custom Global Keymaps
+
+Disable default keymaps and set your own:
+
+```lua
+vim.g.todo_mcp_no_default_keymaps = true
+vim.keymap.set("n", "<leader>tt", "<Plug>(todo-mcp-toggle)")
+vim.keymap.set("n", "<leader>ta", "<Plug>(todo-mcp-add)")
+vim.keymap.set("n", "<leader>tA", "<Plug>(todo-mcp-add-advanced)")
 ```
 
 ## MCP Configuration

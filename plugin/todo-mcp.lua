@@ -4,6 +4,29 @@ if vim.g.loaded_todo_mcp then
 end
 vim.g.loaded_todo_mcp = true
 
+-- Create <Plug> mappings for lazy loading
+vim.keymap.set("n", "<Plug>(todo-mcp-toggle)", function()
+  require("todo-mcp.ui").toggle()
+end, { desc = "Toggle todo list" })
+
+vim.keymap.set("n", "<Plug>(todo-mcp-add)", function()
+  vim.ui.input({ prompt = "New todo: " }, function(input)
+    if input and input ~= "" then
+      require("todo-mcp.db").add(input)
+      vim.notify("Todo added: " .. input)
+    end
+  end)
+end, { desc = "Add new todo" })
+
+vim.keymap.set("n", "<Plug>(todo-mcp-add-advanced)", function()
+  require("todo-mcp.ui").add_todo_with_options()
+end, { desc = "Add todo with options" })
+
+-- Default keymap (can be overridden by user)
+if not vim.g.todo_mcp_no_default_keymaps then
+  vim.keymap.set("n", "<leader>td", "<Plug>(todo-mcp-toggle)", { desc = "Toggle todo list" })
+end
+
 -- Create user command
 vim.api.nvim_create_user_command("TodoMCP", function(opts)
   if opts.args == "toggle" or opts.args == "" then
