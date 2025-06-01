@@ -10,9 +10,14 @@ help:
 	@echo "  test-integration - Run integration tests only"
 	@echo "  test-ai        - Run AI feature tests only"
 	@echo "  test-db        - Run database tests only"
+	@echo "  test-validate  - Run validation tests for common issues"
+	@echo "  validate       - Run all validation checks (syntax + tests)"
+	@echo "  check-syntax   - Check Lua syntax in all files"
+	@echo "  check-common   - Check for common issues (duplicate tags, etc)"
 	@echo "  lint           - Run linting (luacheck if available)"
 	@echo "  clean          - Clean test artifacts"
 	@echo "  install-deps   - Install test dependencies"
+	@echo "  pre-commit     - Run all checks before committing"
 
 # Run all tests
 test:
