@@ -43,6 +43,33 @@ M.setup = function(opts)
       todo_comments = {
         enabled = true,
         auto_import = false,
+      },
+      external = {
+        enabled = true,
+        auto_sync = true,
+        default_integration = "github",
+        debug = false
+      },
+      ai = {
+        enabled = true,
+        auto_analyze = false, -- Analyze new TODOs automatically
+        min_confidence = 60,  -- Minimum confidence to apply AI suggestions
+        context_lines = 10    -- Lines of context to analyze around TODO
+      },
+      enterprise = {
+        enabled = false,      -- Enable enterprise features
+        team_sync = {
+          enabled = false,
+          sync_server = nil,
+          team_id = nil,
+          user_id = nil,
+          sync_interval = 300 -- 5 minutes
+        },
+        reporting = {
+          enabled = true,
+          auto_generate = false,
+          export_format = "markdown"
+        }
       }
     }
   }, opts)
@@ -55,6 +82,56 @@ M.setup = function(opts)
   
   -- Setup pickers and integrations
   require("todo-mcp.pickers").setup()
+  
+  -- Setup integrations
+  if M.opts.integrations.todo_comments.enabled then
+    local tc_integration = require("todo-mcp.integrations.todo-comments")
+    tc_integration.config = vim.tbl_extend("force", tc_integration.config, M.opts.integrations.todo_comments)
+    tc_integration.setup()
+    
+    -- Setup code actions
+    require("todo-mcp.integrations.code-actions").setup()
+    
+    -- Setup quickfix
+    require("todo-mcp.integrations.quickfix").setup()
+  end
+  
+  -- Setup external integrations
+  if M.opts.integrations.external.enabled then
+    require("todo-mcp.integrations.external").setup()
+    
+    -- Auto-sync status changes
+    if M.opts.integrations.external.auto_sync then
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "TodoMCPStatusChanged",
+        callback = function(event)
+          local external = require("todo-mcp.integrations.external")
+          local todo_id = event.data.todo_id
+          local new_status = event.data.new_status
+          
+          vim.schedule(function()
+            external.sync_external_status(todo_id, new_status)
+          end)
+        end
+      })
+    end
+  end
+  
+  -- Setup AI integrations
+  if M.opts.integrations.ai.enabled then
+    require("todo-mcp.ai.analyzer").setup()
+  end
+  
+  -- Setup enterprise features
+  if M.opts.integrations.enterprise.enabled then
+    if M.opts.integrations.enterprise.team_sync.enabled then
+      require("todo-mcp.enterprise.team-sync").setup(M.opts.integrations.enterprise.team_sync)
+    end
+    
+    if M.opts.integrations.enterprise.reporting.enabled then
+      require("todo-mcp.enterprise.reporting").setup(M.opts.integrations.enterprise.reporting)
+    end
+  end
   
   -- Setup telescope extension if available
   local has_telescope, telescope = pcall(require, 'telescope')

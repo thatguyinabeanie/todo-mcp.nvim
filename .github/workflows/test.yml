@@ -1,0 +1,113 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        lua-version: [5.1, 5.2, 5.3, 5.4, luajit]
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Lua ${{ matrix.lua-version }}
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: ${{ matrix.lua-version }}
+        
+    - name: Setup LuaRocks
+      uses: leafo/gh-actions-luarocks@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sqlite3 libsqlite3-dev
+        luarocks install sqlite3
+        luarocks install luacheck
+        
+    - name: Run linting
+      run: make lint
+      
+    - name: Run tests
+      run: make test
+      
+    - name: Test MCP servers
+      run: |
+        # Test that MCP servers can start (basic syntax check)
+        lua -c mcp-servers/linear-server.lua
+        lua -c mcp-servers/github-server.lua  
+        lua -c mcp-servers/jira-server.lua
+
+  neovim-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        nvim-version: [stable, nightly]
+        
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Neovim ${{ matrix.nvim-version }}
+      uses: rhysd/action-setup-vim@v1
+      with:
+        neovim: true
+        version: ${{ matrix.nvim-version }}
+        
+    - name: Setup Lua
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: luajit
+        
+    - name: Setup LuaRocks
+      uses: leafo/gh-actions-luarocks@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sqlite3 libsqlite3-dev git
+        luarocks install sqlite3
+        
+    - name: Install sqlite.lua for Neovim
+      run: |
+        git clone https://github.com/kkharji/sqlite.lua.git /tmp/sqlite.lua
+        
+    - name: Test plugin loading
+      run: |
+        nvim --headless --clean -u NONE \
+          -c "set rtp+=/tmp/sqlite.lua" \
+          -c "set rtp+=." \
+          -c "lua require('todo-mcp').setup()" \
+          -c "lua print('Plugin loaded successfully')" \
+          -c "qall"
+
+  integration-test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup Lua
+      uses: leafo/gh-actions-lua@v10
+      with:
+        luaVersion: luajit
+        
+    - name: Setup dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y sqlite3 libsqlite3-dev luarocks
+        luarocks install sqlite3
+        luarocks install luasocket
+        
+    - name: Test MCP integration
+      run: make test-mcp
+      
+    - name: Test AI features
+      run: make test-ai
+      
+    - name: Test database operations
+      run: make test-db

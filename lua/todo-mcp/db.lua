@@ -258,4 +258,52 @@ M.get_db = function()
   return db
 end
 
+-- Find todo by metadata field (for external integrations)
+M.find_by_metadata = function(field, value)
+  local todos = M.get_all()
+  
+  for _, todo in ipairs(todos) do
+    if todo.metadata then
+      local metadata = vim.json.decode(todo.metadata)
+      if metadata and metadata[field] == value then
+        return todo
+      end
+    end
+  end
+  
+  return nil
+end
+
+-- Get todos with external sync enabled
+M.get_external_synced = function()
+  local todos = M.get_all()
+  local synced = {}
+  
+  for _, todo in ipairs(todos) do
+    if todo.metadata then
+      local metadata = vim.json.decode(todo.metadata)
+      if metadata and metadata.external_sync then
+        table.insert(synced, todo)
+      end
+    end
+  end
+  
+  return synced
+end
+
+-- Update todo status and trigger external sync
+M.update_with_sync = function(id, updates)
+  local success = M.update(id, updates)
+  
+  if success and updates.status then
+    -- Trigger external sync event
+    vim.api.nvim_exec_autocmds("User", {
+      pattern = "TodoMCPStatusChanged",
+      data = { todo_id = id, new_status = updates.status }
+    })
+  end
+  
+  return success
+end
+
 return M

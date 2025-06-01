@@ -1,6 +1,12 @@
 # todo-mcp.nvim
 
-A fast, SQLite-backed todo list plugin for Neovim with Model Context Protocol (MCP) support. This allows LLMs like Claude to read and manage your todo list.
+**The missing link between code comments and task management.**
+
+todo-mcp.nvim is the definitive bridge that transforms ephemeral TODO comments into persistent, actionable tasks with AI-powered insights and seamless external integrations.
+
+![GitHub stars](https://img.shields.io/github/stars/your-username/todo-mcp.nvim?style=social)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![Neovim](https://img.shields.io/badge/neovim-0.9.0+-green.svg)
 
 ## Features
 
