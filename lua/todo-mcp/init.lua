@@ -36,6 +36,15 @@ M.setup = function(opts)
       toggle_done = "<CR>",
       quit = "q",
     },
+    -- Picker preference (telescope | fzf | snacks | auto)
+    picker = "auto",
+    -- Integration settings
+    integrations = {
+      todo_comments = {
+        enabled = true,
+        auto_import = false,
+      }
+    }
   }, opts)
   
   -- Initialize modules lazily
@@ -43,6 +52,15 @@ M.setup = function(opts)
   require("todo-mcp.mcp").setup(M.opts.mcp_server)
   require("todo-mcp.ui").setup(M.opts.ui)
   require("todo-mcp.keymaps").setup(M.opts.keymaps)
+  
+  -- Setup pickers and integrations
+  require("todo-mcp.pickers").setup()
+  
+  -- Setup telescope extension if available
+  local has_telescope, telescope = pcall(require, 'telescope')
+  if has_telescope then
+    telescope.load_extension('todo_mcp')
+  end
 end
 
 -- Expose main functions for <Plug> mappings
@@ -56,6 +74,16 @@ end
 
 M.add_with_options = function()
   return require("todo-mcp.ui").add_todo_with_options()
+end
+
+-- Open picker interface
+M.picker = function(opts)
+  return require("todo-mcp.pickers").open(opts)
+end
+
+-- Import from todo-comments
+M.import = function()
+  return require("todo-mcp.pickers").import_from_todo_comments()
 end
 
 return M
