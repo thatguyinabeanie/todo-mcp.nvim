@@ -1,7 +1,7 @@
 # Testing Guide
 
 This document explains how to run and write tests for todo-mcp.nvim.
-
+# TODO: update testing guide
 ## Overview
 
 The test suite focuses on critical integrations and happy paths for our new functionality:

@@ -14,6 +14,7 @@ M.state = {
   last_render_time = 0,
   preview_win = nil,
   preview_buf = nil,
+  preview_enabled = false,
   status_line_timer = nil
 }
 
@@ -77,7 +78,8 @@ M.open = function()
     style = "minimal",
     title = " 📋 Todo Manager (MCP) ",
     title_pos = "center",
-    noautocmd = true
+    noautocmd = true,
+    zindex = 50  -- Base z-index for main window
   })
   
   -- Set window options
@@ -253,6 +255,16 @@ M.refresh = function()
     end
     cursor_line = cursor_line + offset
     api.nvim_win_set_cursor(M.state.win, { cursor_line, 0 })
+    
+    -- Refresh preview if enabled
+    if M.state.preview_enabled then
+      local todo_idx = M.get_cursor_todo_idx()
+      if todo_idx and M.state.todos[todo_idx] then
+        M.show_preview(M.state.todos[todo_idx])
+      else
+        M.close_preview()
+      end
+    end
   end
 end
 
@@ -364,13 +376,16 @@ M.setup_keymaps = function()
   
   -- Toggle preview
   vim.keymap.set("n", "p", function()
-    local todo_idx = M.get_cursor_todo_idx()
-    if todo_idx and M.state.todos[todo_idx] then
-      if M.state.preview_win and api.nvim_win_is_valid(M.state.preview_win) then
-        M.close_preview()
-      else
+    M.state.preview_enabled = not M.state.preview_enabled
+    if M.state.preview_enabled then
+      local todo_idx = M.get_cursor_todo_idx()
+      if todo_idx and M.state.todos[todo_idx] then
         M.show_preview(M.state.todos[todo_idx])
       end
+      vim.notify("Preview enabled", vim.log.levels.INFO)
+    else
+      M.close_preview()
+      vim.notify("Preview disabled", vim.log.levels.INFO)
     end
   end, { buffer = buf, desc = "Toggle preview" })
   
@@ -497,7 +512,11 @@ M.get_cursor_todo_idx = function()
     if M.state.search_active then
       offset = offset + 2 -- search line + separator
     end
-    return idx - offset
+    idx = idx - offset
+    if idx > 0 and idx <= #M.state.todos then
+      return idx
+    end
+    return nil
   end
 end
 
@@ -649,6 +668,16 @@ M.show_preview = function(todo)
   local main_config = api.nvim_win_get_config(M.state.win)
   local preview_col = main_config.col + main_config.width + 2
   
+  -- Check if preview would go off-screen
+  if preview_col + max_width > vim.o.columns then
+    -- Try positioning to the left instead
+    preview_col = main_config.col - max_width - 2
+    if preview_col < 0 then
+      -- If no room on either side, overlap the main window
+      preview_col = math.max(0, vim.o.columns - max_width - 2)
+    end
+  end
+  
   -- Create preview buffer
   M.state.preview_buf = api.nvim_create_buf(false, true)
   api.nvim_buf_set_option(M.state.preview_buf, "buftype", "nofile")
@@ -666,7 +695,8 @@ M.show_preview = function(todo)
     style = "minimal",
     title = " Preview ",
     title_pos = "center",
-    noautocmd = true
+    noautocmd = true,
+    zindex = 60  -- Ensure preview is above main window
   })
   
   -- Set preview window options
@@ -701,10 +731,14 @@ M.move_cursor = function(direction)
   
   api.nvim_win_set_cursor(M.state.win, { new_line, 0 })
   
-  -- Show preview for current todo
-  local todo_idx = M.get_cursor_todo_idx()
-  if todo_idx and M.state.todos[todo_idx] then
-    M.show_preview(M.state.todos[todo_idx])
+  -- Show preview for current todo if enabled
+  if M.state.preview_enabled then
+    local todo_idx = M.get_cursor_todo_idx()
+    if todo_idx and M.state.todos[todo_idx] then
+      M.show_preview(M.state.todos[todo_idx])
+    else
+      M.close_preview()
+    end
   end
 end
 
