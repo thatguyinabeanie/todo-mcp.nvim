@@ -1,5 +1,10 @@
 # todo-mcp.nvim
 
+> ⚠️ **WORK IN PROGRESS - DO NOT USE IN PRODUCTION**
+> 
+> This plugin is under active development and APIs may change without notice.
+> Please wait for the stable v1.0 release before using in your workflow.
+
 **The missing link between code comments and task management.**
 
 todo-mcp.nvim is the definitive bridge that transforms ephemeral TODO comments into persistent, actionable tasks with AI-powered insights and seamless external integrations.
