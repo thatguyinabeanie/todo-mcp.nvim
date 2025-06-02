@@ -378,8 +378,15 @@ M.setup_keymaps = function()
   vim.keymap.set("n", "p", function()
     M.state.preview_enabled = not M.state.preview_enabled
     if M.state.preview_enabled then
-      local todo_idx = M.get_cursor_todo_idx()
-      if todo_idx and M.state.todos[todo_idx] then
+      -- Get current cursor position directly
+      local cursor_line = api.nvim_win_get_cursor(M.state.win)[1]
+      local offset = 3 -- title + separator + blank line
+      if M.state.search_active then
+        offset = offset + 2 -- search line + separator
+      end
+      local todo_idx = cursor_line - offset
+      
+      if todo_idx > 0 and todo_idx <= #M.state.todos and M.state.todos[todo_idx] then
         M.show_preview(M.state.todos[todo_idx])
       end
       vim.notify("Preview enabled", vim.log.levels.INFO)
@@ -621,6 +628,11 @@ M.show_preview = function(todo)
     return
   end
   
+  -- Validate main window still exists
+  if not M.state.win or not api.nvim_win_is_valid(M.state.win) then
+    return
+  end
+  
   -- Close existing preview
   M.close_preview()
   
@@ -685,7 +697,7 @@ M.show_preview = function(todo)
   api.nvim_buf_set_option(M.state.preview_buf, "modifiable", false)
   
   -- Create preview window
-  M.state.preview_win = api.nvim_open_win(M.state.preview_buf, false, {
+  local ok, win_or_err = pcall(api.nvim_open_win, M.state.preview_buf, false, {
     relative = "editor",
     row = main_config.row,
     col = preview_col,
@@ -699,8 +711,19 @@ M.show_preview = function(todo)
     zindex = 60  -- Ensure preview is above main window
   })
   
+  if not ok then
+    vim.notify("Failed to create preview window: " .. tostring(win_or_err), vim.log.levels.ERROR)
+    if M.state.preview_buf and api.nvim_buf_is_valid(M.state.preview_buf) then
+      api.nvim_buf_delete(M.state.preview_buf, { force = true })
+    end
+    M.state.preview_buf = nil
+    return
+  end
+  
+  M.state.preview_win = win_or_err
+  
   -- Set preview window options
-  api.nvim_win_set_option(M.state.preview_win, "winhl", "Normal:TodoNormal")
+  pcall(api.nvim_win_set_option, M.state.preview_win, "winhl", "Normal:TodoNormal")
 end
 
 M.close_preview = function()
