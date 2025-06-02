@@ -1,4 +1,52 @@
+-- AI Context Module
+-- Provides intelligent context detection for todos with lazy language loading
+-- Language-specific features are only loaded when working with files of that type
 local M = {}
+
+-- Language detectors registry - loaded on demand
+-- This prevents loading language-specific code until actually needed
+M.language_detectors = {
+  py = nil,
+  js = nil,
+  ts = nil,
+  jsx = nil,
+  tsx = nil,
+  rs = nil,
+  go = nil,
+  lua = nil
+}
+
+-- Map file extensions to language types
+M.get_language_from_extension = function(ext)
+  local extension_map = {
+    py = "python",
+    js = "javascript",
+    jsx = "javascript",
+    ts = "typescript",
+    tsx = "typescript",
+    lua = "lua",
+    rs = "rust",
+    go = "go",
+    c = "c",
+    cpp = "cpp",
+    cc = "cpp",
+    cxx = "cpp",
+    h = "c",
+    hpp = "cpp",
+    java = "java",
+    rb = "ruby",
+    php = "php",
+    cs = "csharp",
+    swift = "swift",
+    kt = "kotlin",
+    scala = "scala",
+    r = "r",
+    m = "objective-c",
+    mm = "objective-c++"
+  }
+  
+  return extension_map[ext] or "unknown"
+end
 
 -- Enhanced context detection with AI-like intelligence
 M.detect_enhanced_context = function(filepath, line_content, surrounding_lines)
@@ -167,19 +215,36 @@ M.analyze_project_context = function(filepath)
     return analysis
   end
   
-  -- Detect project type from package.json, Cargo.toml, go.mod, etc.
-  local package_json = project_root .. "/package.json"
-  local cargo_toml = project_root .. "/Cargo.toml"
-  local go_mod = project_root .. "/go.mod"
+  -- First detect language from file extension
+  local ext = vim.fn.fnamemodify(filepath, ":e")
+  local lang = M.get_language_from_extension(ext)
   
-  if vim.fn.filereadable(package_json) == 1 then
-    analysis.project_type = "javascript"
-    analysis.framework_detected = M.detect_js_frameworks(package_json)
-  -- Reserved for future language detection
-  elseif vim.fn.filereadable(cargo_toml) == 1 then
-    analysis.project_type = "rust"
-  elseif vim.fn.filereadable(go_mod) == 1 then
-    analysis.project_type = "go"
+  -- Only check project files relevant to the detected language
+  if lang == "javascript" or lang == "typescript" then
+    local package_json = project_root .. "/package.json"
+    if vim.fn.filereadable(package_json) == 1 then
+      analysis.project_type = lang
+      analysis.framework_detected = M.detect_js_frameworks(package_json)
+    end
+  elseif lang == "python" then
+    -- Only load Python detection if we're in a Python file
+    local requirements_txt = project_root .. "/requirements.txt"
+    if vim.fn.filereadable(requirements_txt) == 1 then
+      analysis.project_type = "python"
+      analysis.framework_detected = M.detect_python_frameworks_lazy(requirements_txt)
+    end
+  elseif lang == "rust" then
+    local cargo_toml = project_root .. "/Cargo.toml"
+    if vim.fn.filereadable(cargo_toml) == 1 then
+      analysis.project_type = "rust"
+    end
+  elseif lang == "go" then
+    local go_mod = project_root .. "/go.mod"
+    if vim.fn.filereadable(go_mod) == 1 then
+      analysis.project_type = "go"
+    end
+  else
+    analysis.project_type = lang
   end
   
   -- Git context
@@ -442,7 +507,34 @@ M.detect_js_frameworks = function(package_json)
   return frameworks
 end
 
--- Reserved for future framework detection
+-- Lazy load Python framework detection only when needed
+M.detect_python_frameworks_lazy = function(requirements_txt)
+  -- Only load the actual detection if we haven't already
+  if not M._python_framework_detector then
+    M._python_framework_detector = function(req_file)
+      local frameworks = {}
+      local content = vim.fn.readfile(req_file)
+      local requirements_str = table.concat(content, "\n"):lower()
+      
+      if requirements_str:find("django") then
+        table.insert(frameworks, "django")
+      end
+      if requirements_str:find("flask") then
+        table.insert(frameworks, "flask")
+      end
+      if requirements_str:find("fastapi") then
+        table.insert(frameworks, "fastapi")
+      end
+      if requirements_str:find("pytest") then
+        table.insert(frameworks, "pytest")
+      end
+      
+      return frameworks
+    end
+  end
+  
+  return M._python_framework_detector(requirements_txt)
+end
 
 M.classify_branch_type = function(branch_name)
   local branch_types = {
