@@ -249,10 +249,7 @@ M.refresh = function()
   if M.state.win and api.nvim_win_is_valid(M.state.win) then
     -- Account for title and search header offset
     local cursor_line = M.state.selected
-    local offset = 3 -- title + separator + blank line
-    if M.state.search_active then
-      offset = offset + 2 -- search line + separator
-    end
+    local offset = M.get_header_offset()
     cursor_line = cursor_line + offset
     api.nvim_win_set_cursor(M.state.win, { cursor_line, 0 })
     
@@ -286,10 +283,7 @@ M.setup_keymaps = function()
   vim.keymap.set("n", keymaps.delete, function()
     local idx = api.nvim_win_get_cursor(M.state.win)[1]
     -- Account for title and search header offset
-    local offset = 3 -- title + separator + blank line
-    if M.state.search_active then
-      offset = offset + 2 -- search line + separator
-    end
+    local offset = M.get_header_offset()
     idx = idx - offset
     if M.state.todos[idx] then
       db.delete(M.state.todos[idx].id)
@@ -301,10 +295,7 @@ M.setup_keymaps = function()
   vim.keymap.set("n", keymaps.toggle_done, function()
     local idx = api.nvim_win_get_cursor(M.state.win)[1]
     -- Account for title and search header offset
-    local offset = 3 -- title + separator + blank line
-    if M.state.search_active then
-      offset = offset + 2 -- search line + separator
-    end
+    local offset = M.get_header_offset()
     idx = idx - offset
     if M.state.todos[idx] then
       db.toggle_done(M.state.todos[idx].id)
@@ -360,10 +351,7 @@ M.setup_keymaps = function()
   vim.keymap.set("n", "gf", function()
     local idx = api.nvim_win_get_cursor(M.state.win)[1]
     -- Account for title and search header offset
-    local offset = 3 -- title + separator + blank line
-    if M.state.search_active then
-      offset = offset + 2 -- search line + separator
-    end
+    local offset = M.get_header_offset()
     idx = idx - offset
     if M.state.todos[idx] and M.state.todos[idx].file_path then
       M.close()
@@ -380,10 +368,7 @@ M.setup_keymaps = function()
     if M.state.preview_enabled then
       -- Get current cursor position directly
       local cursor_line = api.nvim_win_get_cursor(M.state.win)[1]
-      local offset = 3 -- title + separator + blank line
-      if M.state.search_active then
-        offset = offset + 2 -- search line + separator
-      end
+      local offset = M.get_header_offset()
       local todo_idx = cursor_line - offset
       
       if todo_idx > 0 and todo_idx <= #M.state.todos and M.state.todos[todo_idx] then
@@ -416,10 +401,7 @@ M.setup_keymaps = function()
     else
       -- Original toggle done behavior
       local idx = api.nvim_win_get_cursor(M.state.win)[1]
-      local offset = 3
-      if M.state.search_active then
-        offset = offset + 2
-      end
+      local offset = M.get_header_offset()
       idx = idx - offset
       if M.state.todos[idx] then
         db.toggle_done(M.state.todos[idx].id)
@@ -492,6 +474,18 @@ M.setup_keymaps = function()
   vim.keymap.set("n", "<Esc>", M.close, { buffer = buf })
 end
 
+-- Helper to calculate header offset
+M.get_header_offset = function()
+  local offset = 3 -- title + separator + blank line
+  if #M.state.todos > 0 then
+    offset = offset + 1 -- stats line
+  end
+  if M.state.search_active then
+    offset = offset + 2 -- search line + separator
+  end
+  return offset
+end
+
 -- Helper to get todo index accounting for headers
 M.get_cursor_todo_idx = function()
   local idx = api.nvim_win_get_cursor(M.state.win)[1]
@@ -515,10 +509,7 @@ M.get_cursor_todo_idx = function()
     return nil
   else
     -- Original offset calculation
-    local offset = 3 -- title + separator + blank line
-    if M.state.search_active then
-      offset = offset + 2 -- search line + separator
-    end
+    local offset = M.get_header_offset()
     idx = idx - offset
     if idx > 0 and idx <= #M.state.todos then
       return idx
