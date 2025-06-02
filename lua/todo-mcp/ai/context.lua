@@ -167,18 +167,15 @@ M.analyze_project_context = function(filepath)
     return analysis
   end
   
-  -- Detect project type from package.json, requirements.txt, etc.
+  -- Detect project type from package.json, Cargo.toml, go.mod, etc.
   local package_json = project_root .. "/package.json"
-  local requirements_txt = project_root .. "/requirements.txt"
   local cargo_toml = project_root .. "/Cargo.toml"
   local go_mod = project_root .. "/go.mod"
   
   if vim.fn.filereadable(package_json) == 1 then
     analysis.project_type = "javascript"
     analysis.framework_detected = M.detect_js_frameworks(package_json)
-  elseif vim.fn.filereadable(requirements_txt) == 1 then
-    analysis.project_type = "python"
-    analysis.framework_detected = M.detect_python_frameworks(requirements_txt)
+  -- Reserved for future language detection
   elseif vim.fn.filereadable(cargo_toml) == 1 then
     analysis.project_type = "rust"
   elseif vim.fn.filereadable(go_mod) == 1 then
@@ -445,26 +442,7 @@ M.detect_js_frameworks = function(package_json)
   return frameworks
 end
 
-M.detect_python_frameworks = function(requirements_txt)
-  local frameworks = {}
-  
-  local content = vim.fn.readfile(requirements_txt)
-  local requirements_str = table.concat(content, "\n"):lower()
-  
-  if requirements_str:find("django") then
-    table.insert(frameworks, "django")
-  end
-  
-  if requirements_str:find("flask") then
-    table.insert(frameworks, "flask")
-  end
-  
-  if requirements_str:find("fastapi") then
-    table.insert(frameworks, "fastapi")
-  end
-  
-  return frameworks
-end
+-- Reserved for future framework detection
 
 M.classify_branch_type = function(branch_name)
   local branch_types = {

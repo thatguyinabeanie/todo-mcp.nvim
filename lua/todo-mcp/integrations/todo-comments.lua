@@ -151,7 +151,7 @@ M.detect_context = function(filepath)
     jsx = "frontend,react",
     tsx = "frontend,react,typescript",
     vue = "frontend,vue",
-    py = "backend,python",
+    -- Reserved for future languages
     rb = "backend,ruby",
     go = "backend,golang",
     rs = "backend,rust",

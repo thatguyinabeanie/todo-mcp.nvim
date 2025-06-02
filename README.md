@@ -284,8 +284,8 @@ Add to your MCP configuration file:
 {
   "mcpServers": {
     "todo-mcp": {
-      "command": "python3",
-      "args": ["/path/to/todo-mcp.nvim/mcp-server.py"],
+      "command": "lua",
+      "args": ["/path/to/todo-mcp.nvim/mcp-server.lua"],
       "env": {
         "TODO_MCP_DB": "~/.local/share/nvim/todo-mcp.db"
       }
