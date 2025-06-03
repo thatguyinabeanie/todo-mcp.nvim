@@ -247,11 +247,18 @@ M.refresh = function()
     M.state.selected = math.max(1, #M.state.todos)
   end
   if M.state.win and api.nvim_win_is_valid(M.state.win) then
-    -- Account for title and search header offset
-    local cursor_line = M.state.selected
-    local offset = M.get_header_offset()
-    cursor_line = cursor_line + offset
-    api.nvim_win_set_cursor(M.state.win, { cursor_line, 0 })
+    -- Find the actual line number for the selected todo
+    local cursor_line = M.get_line_for_todo(M.state.selected)
+    if cursor_line then
+      api.nvim_win_set_cursor(M.state.win, { cursor_line, 0 })
+    else
+      -- Fallback to first todo line if available
+      cursor_line = M.get_line_for_todo(1)
+      if cursor_line then
+        api.nvim_win_set_cursor(M.state.win, { cursor_line, 0 })
+        M.state.selected = 1
+      end
+    end
     
     -- Refresh preview if enabled
     if M.state.preview_enabled then
@@ -281,11 +288,8 @@ M.setup_keymaps = function()
   
   -- Delete todo
   vim.keymap.set("n", keymaps.delete, function()
-    local idx = api.nvim_win_get_cursor(M.state.win)[1]
-    -- Account for title and search header offset
-    local offset = M.get_header_offset()
-    idx = idx - offset
-    if M.state.todos[idx] then
+    local idx = M.get_cursor_todo_idx()
+    if idx and M.state.todos[idx] then
       db.delete(M.state.todos[idx].id)
       M.refresh()
     end
@@ -293,11 +297,8 @@ M.setup_keymaps = function()
   
   -- Toggle done
   vim.keymap.set("n", keymaps.toggle_done, function()
-    local idx = api.nvim_win_get_cursor(M.state.win)[1]
-    -- Account for title and search header offset
-    local offset = M.get_header_offset()
-    idx = idx - offset
-    if M.state.todos[idx] then
+    local idx = M.get_cursor_todo_idx()
+    if idx and M.state.todos[idx] then
       db.toggle_done(M.state.todos[idx].id)
       M.refresh()
     end
@@ -349,11 +350,8 @@ M.setup_keymaps = function()
   
   -- Jump to file
   vim.keymap.set("n", "gf", function()
-    local idx = api.nvim_win_get_cursor(M.state.win)[1]
-    -- Account for title and search header offset
-    local offset = M.get_header_offset()
-    idx = idx - offset
-    if M.state.todos[idx] and M.state.todos[idx].file_path then
+    local idx = M.get_cursor_todo_idx()
+    if idx and M.state.todos[idx] and M.state.todos[idx].file_path then
       M.close()
       vim.cmd("edit " .. M.state.todos[idx].file_path)
       if M.state.todos[idx].line_number then
@@ -366,12 +364,8 @@ M.setup_keymaps = function()
   vim.keymap.set("n", "p", function()
     M.state.preview_enabled = not M.state.preview_enabled
     if M.state.preview_enabled then
-      -- Get current cursor position directly
-      local cursor_line = api.nvim_win_get_cursor(M.state.win)[1]
-      local offset = M.get_header_offset()
-      local todo_idx = cursor_line - offset
-      
-      if todo_idx > 0 and todo_idx <= #M.state.todos and M.state.todos[todo_idx] then
+      local todo_idx = M.get_cursor_todo_idx()
+      if todo_idx and M.state.todos[todo_idx] then
         M.show_preview(M.state.todos[todo_idx])
       end
       vim.notify("Preview enabled", vim.log.levels.INFO)
@@ -392,18 +386,12 @@ M.setup_keymaps = function()
   
   -- Open todo in markdown view
   vim.keymap.set("n", "<CR>", function()
-    if M.config.view_mode == "markdown" then
-      local idx = M.get_cursor_todo_idx()
-      if M.state.todos[idx] then
+    local idx = M.get_cursor_todo_idx()
+    if idx and M.state.todos[idx] then
+      if M.config.view_mode == "markdown" then
         local markdown_ui = require("todo-mcp.markdown-ui")
         markdown_ui.open_todo(M.state.todos[idx])
-      end
-    else
-      -- Original toggle done behavior
-      local idx = api.nvim_win_get_cursor(M.state.win)[1]
-      local offset = M.get_header_offset()
-      idx = idx - offset
-      if M.state.todos[idx] then
+      else
         db.toggle_done(M.state.todos[idx].id)
         M.refresh()
       end
@@ -488,7 +476,7 @@ end
 
 -- Helper to get todo index accounting for headers
 M.get_cursor_todo_idx = function()
-  local idx = api.nvim_win_get_cursor(M.state.win)[1]
+  local cursor_line = api.nvim_win_get_cursor(M.state.win)[1]
   
   if M.config.view_mode == "markdown" then
     -- In markdown mode, we need different offset calculation
@@ -501,21 +489,64 @@ M.get_cursor_todo_idx = function()
     for i, line in ipairs(lines) do
       if line:match("^###") then
         todo_idx = todo_idx + 1
-        if i >= idx then
+        if i >= cursor_line then
           return todo_idx
         end
       end
     end
     return nil
   else
-    -- Original offset calculation
-    local offset = M.get_header_offset()
-    idx = idx - offset
-    if idx > 0 and idx <= #M.state.todos then
-      return idx
+    -- For non-markdown views, we need to map buffer lines to todo indices
+    local line_map = M.build_line_to_todo_map()
+    return line_map[cursor_line]
+  end
+end
+
+-- Build a map from line numbers to todo indices
+M.build_line_to_todo_map = function()
+  local lines = api.nvim_buf_get_lines(M.state.buf, 0, -1, false)
+  local line_map = {}
+  local todo_idx = 0
+  
+  -- Skip past the header offset
+  local header_offset = M.get_header_offset()
+  
+  for i = header_offset + 1, #lines do
+    local line = lines[i]
+    -- Skip empty lines and section headers
+    if line ~= "" and not line:match("^##") and not line:match("^─+$") and not line:match("^╭─") and not line:match("^│") and not line:match("^╰─") then
+      todo_idx = todo_idx + 1
+      if todo_idx <= #M.state.todos then
+        line_map[i] = todo_idx
+      end
     end
+  end
+  
+  return line_map
+end
+
+-- Get the line number for a todo index
+M.get_line_for_todo = function(todo_idx)
+  if not todo_idx or todo_idx < 1 or todo_idx > #M.state.todos then
     return nil
   end
+  
+  local lines = api.nvim_buf_get_lines(M.state.buf, 0, -1, false)
+  local current_todo = 0
+  local header_offset = M.get_header_offset()
+  
+  for i = header_offset + 1, #lines do
+    local line = lines[i]
+    -- Skip empty lines and section headers
+    if line ~= "" and not line:match("^##") and not line:match("^─+$") and not line:match("^╭─") and not line:match("^│") and not line:match("^╰─") then
+      current_todo = current_todo + 1
+      if current_todo == todo_idx then
+        return i
+      end
+    end
+  end
+  
+  return nil
 end
 
 M.add_todo_with_options = function()
@@ -736,14 +767,40 @@ M.move_cursor = function(direction)
   
   local current_pos = api.nvim_win_get_cursor(M.state.win)
   local new_line = current_pos[1]
+  local lines = api.nvim_buf_get_lines(M.state.buf, 0, -1, false)
   
-  if direction == "down" then
-    new_line = math.min(new_line + 1, api.nvim_buf_line_count(M.state.buf))
-  elseif direction == "up" then
-    new_line = math.max(new_line - 1, 1)
+  -- Move to next/previous non-empty, non-header line
+  repeat
+    if direction == "down" then
+      new_line = new_line + 1
+      if new_line > #lines then
+        new_line = current_pos[1]  -- Stay at current position
+        break
+      end
+    elseif direction == "up" then
+      new_line = new_line - 1
+      if new_line < 1 then
+        new_line = current_pos[1]  -- Stay at current position
+        break
+      end
+    end
+    
+    local line = lines[new_line]
+    -- Check if this is a todo line (not empty, not a header, not a border)
+    if line ~= "" and not line:match("^##") and not line:match("^─+$") and not line:match("^╭─") and not line:match("^│") and not line:match("^╰─") then
+      break  -- Found a todo line
+    end
+  until false
+  
+  if new_line ~= current_pos[1] then
+    api.nvim_win_set_cursor(M.state.win, { new_line, 0 })
+    
+    -- Update selected state
+    local todo_idx = M.get_cursor_todo_idx()
+    if todo_idx then
+      M.state.selected = todo_idx
+    end
   end
-  
-  api.nvim_win_set_cursor(M.state.win, { new_line, 0 })
   
   -- Show preview for current todo if enabled
   if M.state.preview_enabled then
