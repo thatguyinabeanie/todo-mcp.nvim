@@ -1,51 +1,15 @@
 -- AI Context Module
--- Provides intelligent context detection for todos with lazy language loading
--- Language-specific features are only loaded when working with files of that type
+-- Provides intelligent context detection for todos using Neovim's built-in systems
+-- Automatically works with any language that Neovim recognizes
 local M = {}
 
--- Language detectors registry - loaded on demand
--- This prevents loading language-specific code until actually needed
-M.language_detectors = {
-  py = nil,
-  js = nil,
-  ts = nil,
-  jsx = nil,
-  tsx = nil,
-  rs = nil,
-  go = nil,
-  lua = nil
-}
-
--- Map file extensions to language types
-M.get_language_from_extension = function(ext)
-  local extension_map = {
-    py = "python",
-    js = "javascript",
-    jsx = "javascript",
-    ts = "typescript",
-    tsx = "typescript",
-    lua = "lua",
-    rs = "rust",
-    go = "go",
-    c = "c",
-    cpp = "cpp",
-    cc = "cpp",
-    cxx = "cpp",
-    h = "c",
-    hpp = "cpp",
-    java = "java",
-    rb = "ruby",
-    php = "php",
-    cs = "csharp",
-    swift = "swift",
-    kt = "kotlin",
-    scala = "scala",
-    r = "r",
-    m = "objective-c",
-    mm = "objective-c++"
-  }
+-- Use Neovim's built-in filetype detection
+M.get_language_from_file = function(filepath)
+  -- Let Neovim detect the filetype
+  local filetype = vim.filetype.match({ filename = filepath })
   
-  return extension_map[ext] or "unknown"
+  -- Return the filetype or 'unknown' if not detected
+  return filetype or "unknown"
 end
 
 -- Enhanced context detection with AI-like intelligence
@@ -215,9 +179,8 @@ M.analyze_project_context = function(filepath)
     return analysis
   end
   
-  -- First detect language from file extension
-  local ext = vim.fn.fnamemodify(filepath, ":e")
-  local lang = M.get_language_from_extension(ext)
+  -- Use Neovim's filetype detection
+  local lang = M.get_language_from_file(filepath)
   
   -- Only check project files relevant to the detected language
   if lang == "javascript" or lang == "typescript" then

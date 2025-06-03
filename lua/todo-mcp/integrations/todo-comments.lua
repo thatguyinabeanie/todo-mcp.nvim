@@ -139,33 +139,46 @@ M.track_todo = function(todo_comment)
   return todo_id
 end
 
--- Smart context detection
+-- Smart context detection using Neovim's filetype
 M.detect_context = function(filepath)
   local context = {}
   
-  -- Detect by file type
-  local ext = vim.fn.fnamemodify(filepath, ":e")
-  local filetype_tags = {
-    js = "frontend,javascript",
-    ts = "frontend,typescript",
-    jsx = "frontend,react",
-    tsx = "frontend,react,typescript",
-    vue = "frontend,vue",
-    py = "backend,python",
-    rb = "backend,ruby",
-    go = "backend,golang",
-    rs = "backend,rust",
-    lua = "config,lua",
-    vim = "config,vim",
-    md = "docs",
-    test = "test",
-    spec = "test",
-  }
+  -- Use Neovim's filetype detection
+  local filetype = vim.filetype.match({ filename = filepath }) or "unknown"
+  context.filetype = filetype
   
-  context.filetype = ext
-  if filetype_tags[ext] then
-    context.tags = filetype_tags[ext]
+  -- Auto-generate tags based on common filetype patterns
+  -- This is more flexible and works with any language Neovim knows about
+  local tags = {}
+  
+  -- Detect category based on filetype
+  if filetype:match("javascript") or filetype:match("typescript") or 
+     filetype:match("vue") or filetype:match("react") or
+     filetype:match("html") or filetype:match("css") then
+    table.insert(tags, "frontend")
+  elseif filetype:match("python") or filetype:match("ruby") or
+         filetype:match("go") or filetype:match("rust") or
+         filetype:match("java") or filetype:match("cpp") or
+         filetype:match("c$") then
+    table.insert(tags, "backend")
+  elseif filetype:match("lua") or filetype:match("vim") or
+         filetype:match("json") or filetype:match("yaml") or
+         filetype:match("toml") then
+    table.insert(tags, "config")
+  elseif filetype:match("markdown") or filetype:match("text") or
+         filetype:match("rst") then
+    table.insert(tags, "docs")
   end
+  
+  -- Add the filetype itself as a tag
+  table.insert(tags, filetype)
+  
+  -- Check if it's a test file
+  if filepath:match("test") or filepath:match("spec") then
+    table.insert(tags, "test")
+  end
+  
+  context.tags = table.concat(tags, ",")
   
   -- Detect by directory
   local dir = vim.fn.fnamemodify(filepath, ":h:t")

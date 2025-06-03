@@ -294,6 +294,15 @@ Add to your MCP configuration file:
 }
 ```
 
+## Language Support
+
+todo-mcp.nvim automatically works with **any language that Neovim recognizes**. It uses Neovim's built-in filetype detection, so if Neovim can detect the file type, todo-mcp.nvim will work with it.
+
+- **No configuration needed** - Works out of the box with all languages
+- **Automatic detection** - Uses Neovim's filetype system
+- **Framework awareness** - Detects common frameworks when relevant
+- **Lazy loading** - Language features load only when needed
+
 ## Performance & Compatibility
 
 **Requirements:**
