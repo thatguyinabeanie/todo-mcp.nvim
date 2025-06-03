@@ -17,16 +17,35 @@ In mcp-config.json:
       "args": ["mcp-servers/github-server.lua"],
       "env": {
         "GITHUB_TOKEN": "your_personal_access_token",
-        "GITHUB_REPO": "owner/repo" 
+        "GITHUB_REPO": "owner/repo"
       }
     }
   }
 }
 --]]
 
-local json = require('json') or require('dkjson')
-local http = require('socket.http')
-local ltn12 = require('ltn12')
+-- Check for required dependencies
+local ok, json = pcall(require, 'dkjson')
+if not ok then
+  json = nil
+  ok, json = pcall(require, 'json')
+end
+if not ok or not json then
+  io.stderr:write("Error: Missing JSON library. Install with: luarocks install dkjson\n")
+  os.exit(1)
+end
+
+local ok_http, http = pcall(require, 'socket.http')
+if not ok_http then
+  io.stderr:write("Error: Missing LuaSocket. Install with: luarocks install luasocket\n")
+  os.exit(1)
+end
+
+local ok_ltn12, ltn12 = pcall(require, 'ltn12')
+if not ok_ltn12 then
+  io.stderr:write("Error: Missing LTN12 (part of LuaSocket). Install with: luarocks install luasocket\n")
+  os.exit(1)
+end
 
 -- GitHub API configuration
 local GITHUB_API = "https://api.github.com"
@@ -62,10 +81,10 @@ local function github_request(endpoint, method, data)
   if not GITHUB_TOKEN then
     return nil, "GITHUB_TOKEN environment variable not set"
   end
-  
+
   local url = GITHUB_API .. endpoint
   local payload = data and json.encode(data) or nil
-  
+
   local response_body = {}
   local _, status = http.request({
     url = url,
@@ -81,14 +100,14 @@ local function github_request(endpoint, method, data)
     source = payload and ltn12.source.string(payload) or nil,
     sink = ltn12.sink.table(response_body)
   })
-  
+
   local response_text = table.concat(response_body)
-  
+
   if status >= 400 then
     local error_data = json.decode(response_text) or {}
     return nil, "GitHub API error " .. status .. ": " .. (error_data.message or "Unknown error")
   end
-  
+
   return json.decode(response_text)
 end
 
@@ -97,13 +116,13 @@ local function detect_repository()
   if GITHUB_REPO then
     return GITHUB_REPO
   end
-  
+
   -- Try to get from git remote
   local handle = io.popen("git remote get-url origin 2>/dev/null")
   if handle then
     local remote_url = handle:read("*line")
     handle:close()
-    
+
     if remote_url then
       -- Parse GitHub URL patterns
       local owner, repo = remote_url:match("github%.com[:/]([^/]+)/([^/%.]+)")
@@ -112,7 +131,7 @@ local function detect_repository()
       end
     end
   end
-  
+
   return nil
 end
 
@@ -122,7 +141,7 @@ local function get_labels(repo)
   return github_request(endpoint)
 end
 
--- Get repository milestones  
+-- Get repository milestones
 local function get_milestones(repo)
   local endpoint = "/repos/" .. repo .. "/milestones"
   return github_request(endpoint)
@@ -134,11 +153,11 @@ local function create_issue(todo_data)
   if not repo then
     return nil, "Could not detect GitHub repository. Set GITHUB_REPO environment variable."
   end
-  
+
   -- Extract context from metadata
   local metadata = todo_data.metadata and json.decode(todo_data.metadata) or {}
   local context = metadata.context or {}
-  
+
   -- Build issue body with context
   local body_parts = {
     todo_data.content or todo_data.title,
@@ -146,41 +165,41 @@ local function create_issue(todo_data)
     "## Context",
     ""
   }
-  
+
   if todo_data.file_path then
     local line_ref = todo_data.line_number and ("#L" .. todo_data.line_number) or ""
-    table.insert(body_parts, "- **File:** [`" .. todo_data.file_path .. line_ref .. "`](" .. 
+    table.insert(body_parts, "- **File:** [`" .. todo_data.file_path .. line_ref .. "`](" ..
                  "https://github.com/" .. repo .. "/blob/main/" .. todo_data.file_path .. line_ref .. ")")
   end
-  
+
   if context.git_branch then
     table.insert(body_parts, "- **Branch:** `" .. context.git_branch .. "`")
   end
-  
+
   if context.filetype then
     table.insert(body_parts, "- **Language:** " .. context.filetype)
   end
-  
+
   if todo_data.tags then
     table.insert(body_parts, "- **Tags:** " .. todo_data.tags)
   end
-  
+
   table.insert(body_parts, "")
   table.insert(body_parts, "_Issue created from todo-mcp.nvim_")
-  
+
   -- Build labels array
   local labels = {}
-  
+
   -- Add priority label
   if todo_data.priority then
     table.insert(labels, "priority:" .. todo_data.priority)
   end
-  
+
   -- Add type label based on original TODO tag
   if metadata.original_tag then
     local tag_labels = {
       TODO = "enhancement",
-      FIXME = "bug", 
+      FIXME = "bug",
       FIX = "bug",
       HACK = "technical debt",
       PERF = "performance",
@@ -191,20 +210,20 @@ local function create_issue(todo_data)
       table.insert(labels, label)
     end
   end
-  
+
   -- Add context-based labels
   if context.tags then
     for tag in context.tags:gmatch("[^,]+") do
       table.insert(labels, tag:gsub("^%s*(.-)%s*$", "%1"))
     end
   end
-  
+
   local issue_data = {
     title = todo_data.title or "TODO from code",
     body = table.concat(body_parts, "\n"),
     labels = labels
   }
-  
+
   local endpoint = "/repos/" .. repo .. "/issues"
   return github_request(endpoint, "POST", issue_data)
 end
@@ -215,7 +234,7 @@ local function update_issue(issue_number, updates, repo)
   if not repo then
     return nil, "Could not detect GitHub repository"
   end
-  
+
   local endpoint = "/repos/" .. repo .. "/issues/" .. issue_number
   return github_request(endpoint, "PATCH", updates)
 end
@@ -227,11 +246,11 @@ local function update_issue_status(issue_number, status, repo)
     in_progress = "open",
     done = "closed"
   }
-  
+
   local updates = {
     state = state_map[status] or "open"
   }
-  
+
   -- Add comment for status changes
   if status == "in_progress" then
     local comment_data = {
@@ -246,7 +265,7 @@ local function update_issue_status(issue_number, status, repo)
     local comment_endpoint = "/repos/" .. (repo or detect_repository()) .. "/issues/" .. issue_number .. "/comments"
     github_request(comment_endpoint, "POST", comment_data)
   end
-  
+
   return update_issue(issue_number, updates, repo)
 end
 
@@ -256,10 +275,10 @@ local function search_issues(query, repo)
   if not repo then
     return nil, "Could not detect GitHub repository"
   end
-  
+
   local search_query = query .. " repo:" .. repo
   local endpoint = "/search/issues?q=" .. search_query:gsub(" ", "+")
-  
+
   return github_request(endpoint)
 end
 
@@ -282,7 +301,7 @@ local function handle_list_tools()
             metadata = { type = "string", description = "JSON metadata" },
             repo = { type = "string", description = "Repository (owner/repo), optional" }
           },
-          required = ["title"]
+          required = {"title"}
         }
       },
       {
@@ -295,7 +314,7 @@ local function handle_list_tools()
             status = { type = "string", enum = {"todo", "in_progress", "done"} },
             repo = { type = "string", description = "Repository (owner/repo), optional" }
           },
-          required = ["issue_number", "status"]
+          required = {"issue_number", "status"}
         }
       },
       {
@@ -307,7 +326,7 @@ local function handle_list_tools()
             query = { type = "string", description = "Search query" },
             repo = { type = "string", description = "Repository (owner/repo), optional" }
           },
-          required = ["query"]
+          required = {"query"}
         }
       },
       {
@@ -327,13 +346,13 @@ end
 local function handle_call_tool(params)
   local tool_name = params.name
   local args = params.arguments
-  
+
   if tool_name == "create_github_issue" then
     local result, err = create_issue(args)
     if err then
       return { error = err }
     end
-    
+
     return {
       success = true,
       issue = {
@@ -344,43 +363,43 @@ local function handle_call_tool(params)
         labels = result.labels
       }
     }
-    
+
   elseif tool_name == "update_github_issue" then
     local result, err = update_issue_status(args.issue_number, args.status, args.repo)
     if err then
       return { error = err }
     end
-    
+
     return { success = true, updated = result }
-    
+
   elseif tool_name == "search_github_issues" then
     local result, err = search_issues(args.query, args.repo)
     if err then
       return { error = err }
     end
-    
-    return { 
+
+    return {
       total_count = result.total_count,
       issues = result.items
     }
-    
+
   elseif tool_name == "get_github_repo_info" then
     local repo = args.repo or detect_repository()
     if not repo then
       return { error = "Could not detect repository" }
     end
-    
+
     local repo_info = github_request("/repos/" .. repo)
     local labels = get_labels(repo)
     local milestones = get_milestones(repo)
-    
+
     return {
       repository = repo,
       info = repo_info,
       labels = labels,
       milestones = milestones
     }
-    
+
   else
     return { error = "Unknown tool: " .. tool_name }
   end
@@ -392,21 +411,21 @@ local function main()
     io.stderr:write("Error: GITHUB_TOKEN environment variable not set\n")
     os.exit(1)
   end
-  
+
   while true do
     local line = io.read("*line")
     if not line then break end
-    
-    local ok, request = pcall(json.decode, line)
-    if not ok then
+
+    local ok_decode, request = pcall(json.decode, line)
+    if not ok_decode then
       send_error(nil, -32700, "Parse error")
       goto continue
     end
-    
+
     local method = request.method
     local id = request.id
     local params = request.params or {}
-    
+
     if method == "initialize" then
       send_response(id, {
         capabilities = {
@@ -417,18 +436,18 @@ local function main()
           version = "1.0.0"
         }
       })
-      
+
     elseif method == "tools/list" then
       send_response(id, handle_list_tools())
-      
+
     elseif method == "tools/call" then
       local result = handle_call_tool(params)
       send_response(id, result)
-      
+
     else
       send_error(id, -32601, "Method not found: " .. (method or "unknown"))
     end
-    
+
     ::continue::
   end
 end

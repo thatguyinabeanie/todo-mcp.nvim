@@ -12,7 +12,7 @@ M.results = {
 }
 
 -- Mock test framework functions
-function describe(name, fn)
+function _G.describe(name, fn)
   M.current_describe = name
   print("  Testing: " .. name)
   local ok, err = pcall(fn)
@@ -27,7 +27,7 @@ function describe(name, fn)
   M.current_describe = nil
 end
 
-function it(name, fn)
+function _G.it(name, fn)
   local full_name = (M.current_describe or "Unknown") .. " - " .. name
   local ok, err = pcall(fn)
   if ok then
@@ -43,7 +43,7 @@ function it(name, fn)
   end
 end
 
-function before_each(fn)
+function _G.before_each(fn)
   -- Store for later execution
   M.before_each_fn = fn
 end
@@ -65,25 +65,25 @@ end
 
 function assert.is_string(value, message)
   if type(value) ~= "string" then
-    error(message or "Expected string, got " .. type(value))
+    error(message or ("Expected string, got " .. type(value)))
   end
 end
 
 function assert.is_table(value, message)
   if type(value) ~= "table" then
-    error(message or "Expected table, got " .. type(value))
+    error(message or ("Expected table, got " .. type(value)))
   end
 end
 
 function assert.is_number(value, message)
   if type(value) ~= "number" then
-    error(message or "Expected number, got " .. type(value))
+    error(message or ("Expected number, got " .. type(value)))
   end
 end
 
 function assert.is_function(value, message)
   if type(value) ~= "function" then
-    error(message or "Expected function, got " .. type(value))
+    error(message or ("Expected function, got " .. type(value)))
   end
 end
 
@@ -95,31 +95,31 @@ end
 
 function assert.is_true(value, message)
   if value ~= true then
-    error(message or "Expected true, got " .. tostring(value))
+    error(message or ("Expected true, got " .. tostring(value)))
   end
 end
 
 function assert.is_false(value, message)
   if value ~= false then
-    error(message or "Expected false, got " .. tostring(value))
+    error(message or ("Expected false, got " .. tostring(value)))
   end
 end
 
 function assert.is_truthy(value, message)
   if not value then
-    error(message or "Expected truthy value, got " .. tostring(value))
+    error(message or ("Expected truthy value, got " .. tostring(value)))
   end
 end
 
 function assert.is_falsy(value, message)
   if value then
-    error(message or "Expected falsy value, got " .. tostring(value))
+    error(message or ("Expected falsy value, got " .. tostring(value)))
   end
 end
 
 function assert.is_empty(value, message)
   if type(value) == "string" and value ~= "" then
-    error(message or "Expected empty string, got " .. value)
+    error(message or ("Expected empty string, got " .. value))
   elseif type(value) == "table" and next(value) ~= nil then
     error(message or "Expected empty table")
   end
@@ -136,7 +136,7 @@ end
 function assert.has_no_errors(fn, message)
   local ok, err = pcall(fn)
   if not ok then
-    error(message or "Expected no errors, got: " .. tostring(err))
+    error(message or ("Expected no errors, got: " .. tostring(err)))
   end
 end
 
