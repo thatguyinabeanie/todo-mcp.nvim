@@ -1,19 +1,14 @@
 -- Configuration validation tests to catch common issues
 describe("todo-mcp configuration validation", function()
-  local todo_mcp
-  
-  before_each(function()
-    -- Reset module state
-    package.loaded["todo-mcp"] = nil
-    package.loaded["todo-mcp.init"] = nil
-    package.loaded["todo-mcp.keymaps"] = nil
-    package.loaded["todo-mcp.ui"] = nil
-    
-    todo_mcp = require("todo-mcp")
-  end)
-  
   describe("keymap configuration", function()
     it("should have all required keymaps in default config", function()
+      -- Reset module state
+      package.loaded["todo-mcp"] = nil
+      package.loaded["todo-mcp.init"] = nil
+      
+      local todo_mcp = require("todo-mcp")
+      todo_mcp.setup({})
+      
       local config = todo_mcp.opts
       assert.is_not_nil(config.keymaps, "keymaps config should exist")
       assert.is_not_nil(config.keymaps.toggle, "toggle keymap should exist")
@@ -25,6 +20,12 @@ describe("todo-mcp configuration validation", function()
     end)
     
     it("should handle missing keymaps gracefully", function()
+      -- Reset module state
+      package.loaded["todo-mcp"] = nil
+      package.loaded["todo-mcp.init"] = nil
+      
+      local todo_mcp = require("todo-mcp")
+      
       -- Test setup with partial keymaps
       assert.has_no_errors(function()
         todo_mcp.setup({
@@ -64,6 +65,13 @@ describe("todo-mcp configuration validation", function()
   
   describe("UI configuration", function()
     it("should have valid default UI settings", function()
+      -- Reset module state
+      package.loaded["todo-mcp"] = nil
+      package.loaded["todo-mcp.init"] = nil
+      
+      local todo_mcp = require("todo-mcp")
+      todo_mcp.setup({})
+      
       local config = todo_mcp.opts
       assert.is_table(config.ui, "ui config should be a table")
       assert.is_number(config.ui.width, "width should be a number")
