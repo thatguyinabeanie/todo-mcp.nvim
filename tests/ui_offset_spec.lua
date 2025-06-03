@@ -12,7 +12,7 @@ describe("todo-mcp UI offset calculations", function()
     end
     
     -- Mock vim functions
-    vim = vim or {}
+    _G.vim = _G.vim or {}
     vim.fn = vim.fn or {}
     vim.fn.strwidth = function(str) return #str end
     vim.api = vim.api or {}

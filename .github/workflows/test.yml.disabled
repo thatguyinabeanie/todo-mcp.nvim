@@ -5,6 +5,7 @@ on:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -12,24 +13,17 @@ jobs:
     strategy:
       matrix:
         lua-version: [5.1, 5.2, 5.3, 5.4, luajit]
+    container:
+      image: nickblah/lua:${{ matrix.lua-version }}-alpine
         
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Setup Lua ${{ matrix.lua-version }}
-      uses: leafo/gh-actions-lua@v10
-      with:
-        luaVersion: ${{ matrix.lua-version }}
-        
-    - name: Setup LuaRocks
-      uses: leafo/gh-actions-luarocks@v4
       
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y sqlite3 libsqlite3-dev
-        luarocks install sqlite3
-        luarocks install luacheck
+        apk add --no-cache build-base sqlite-dev
+        luarocks install sqlite3 || echo "sqlite3 install failed"
+        luarocks install luacheck || echo "luacheck install failed"
         
     - name: Run linting
       run: make lint

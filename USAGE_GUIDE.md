@@ -154,7 +154,7 @@ A           " Add advanced todo
 
 Result:
 ```
-● ▲ Optimize database queries @src/db.py:156 #performance #database [+]
+● ▲ Optimize database queries @src/db.lua:156 #performance #database [+]
 ```
 
 ### 2. Bulk Operations

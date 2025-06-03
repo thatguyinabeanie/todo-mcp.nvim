@@ -23,9 +23,28 @@ In mcp-config.json:
 }
 --]]
 
-local json = require('json') or require('dkjson')
-local http = require('socket.http')
-local ltn12 = require('ltn12')
+-- Check for required dependencies
+local ok, json = pcall(require, 'dkjson')
+if not ok then
+  json = nil
+  ok, json = pcall(require, 'json')
+end
+if not ok or not json then
+  io.stderr:write("Error: Missing JSON library. Install with: luarocks install dkjson\n")
+  os.exit(1)
+end
+
+local ok, http = pcall(require, 'socket.http')
+if not ok then
+  io.stderr:write("Error: Missing LuaSocket. Install with: luarocks install luasocket\n")
+  os.exit(1)
+end
+
+local ok, ltn12 = pcall(require, 'ltn12')
+if not ok then
+  io.stderr:write("Error: Missing LTN12 (part of LuaSocket). Install with: luarocks install luasocket\n")
+  os.exit(1)
+end
 
 -- Linear GraphQL endpoint
 local LINEAR_API = "https://api.linear.app/graphql"
@@ -281,7 +300,7 @@ local function handle_list_tools()
             line_number = { type = "number", description = "Source line number" },
             metadata = { type = "string", description = "JSON metadata" }
           },
-          required = ["title"]
+          required = {"title"}
         }
       },
       {
@@ -293,7 +312,7 @@ local function handle_list_tools()
             issue_id = { type = "string", description = "Linear issue ID" },
             status = { type = "string", enum = {"todo", "in_progress", "done"} }
           },
-          required = ["issue_id", "status"]
+          required = {"issue_id", "status"}
         }
       },
       {

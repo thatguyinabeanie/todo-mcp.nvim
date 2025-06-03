@@ -5,10 +5,19 @@
 
 local function setup_test_environment()
   -- Add project root to package path
-  local project_root = arg[0]:match("(.*/)")
+  local script_path = arg[0]
+  local project_root = script_path:match("^(.*)/tests/") or script_path:match("^(.*)/")
+  
+  -- Debug path
+  -- print("Script path:", script_path)
+  -- print("Project root:", project_root)
+  
+  -- Always add both relative and absolute paths
+  package.path = "lua/?.lua;lua/?/init.lua;tests/mocks/?.lua;" .. package.path
+  
   if project_root then
-    project_root = project_root:gsub("/tests/$", "")
-    package.path = project_root .. "/lua/?.lua;" .. package.path
+    package.path = project_root .. "/lua/?.lua;" .. project_root .. "/lua/?/init.lua;" .. 
+                   project_root .. "/tests/mocks/?.lua;" .. package.path
   end
   
   -- Mock vim APIs for testing
@@ -111,6 +120,34 @@ local function setup_test_environment()
           for k, v in pairs(tbl) do
             if behavior == "force" or result[k] == nil then
               result[k] = v
+            end
+          end
+        end
+      end
+      return result
+    end,
+    
+    tbl_deep_extend = function(behavior, ...)
+      local function deep_copy(tbl)
+        if type(tbl) ~= "table" then
+          return tbl
+        end
+        local copy = {}
+        for k, v in pairs(tbl) do
+          copy[k] = deep_copy(v)
+        end
+        return copy
+      end
+      
+      local result = {}
+      for i = 1, select("#", ...) do
+        local tbl = select(i, ...)
+        if tbl then
+          for k, v in pairs(tbl) do
+            if type(v) == "table" and type(result[k]) == "table" and behavior ~= "force" then
+              result[k] = _G.vim.tbl_deep_extend(behavior, result[k], v)
+            elseif behavior == "force" or result[k] == nil then
+              result[k] = deep_copy(v)
             end
           end
         end
@@ -355,17 +392,55 @@ _G.assert = {
       end
     end
     error("Element '" .. tostring(element) .. "' not found in list")
+  end,
+  
+  has_no_errors = function(fn)
+    local success, err = pcall(fn)
+    if not success then
+      error("Expected no errors, got: " .. tostring(err))
+    end
+  end,
+  
+  is_function = function(value)
+    if type(value) ~= "function" then
+      error("Expected function, got " .. type(value))
+    end
   end
 }
 
 -- Simple describe/it test framework
 _G.describe = function(name, fn)
   print("  " .. name)
+  -- Reset before_each and after_each for this describe block
+  local saved_before_each = _G._before_each
+  local saved_after_each = _G._after_each
+  _G._before_each = nil
+  _G._after_each = nil
+  
   fn()
+  
+  -- Restore previous before_each and after_each
+  _G._before_each = saved_before_each
+  _G._after_each = saved_after_each
 end
 
 _G.it = function(name, fn)
+  -- Run before_each if defined
+  if _G._before_each then
+    local setup_success, setup_err = pcall(_G._before_each)
+    if not setup_success then
+      error("before_each failed: " .. tostring(setup_err))
+    end
+  end
+  
+  -- Run the test
   local success, err = pcall(fn)
+  
+  -- Run after_each if defined
+  if _G._after_each then
+    pcall(_G._after_each)
+  end
+  
   if not success then
     error("Test '" .. name .. "' failed: " .. tostring(err))
   end

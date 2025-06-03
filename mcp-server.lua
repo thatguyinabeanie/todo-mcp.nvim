@@ -4,20 +4,20 @@
 local json = require("dkjson") or require("cjson") or (function()
   -- Minimal JSON implementation if no JSON library available
   local encode, decode
-  
+
   local escape_char_map = {
     ["\\"] = "\\\\", ["\""] = "\\\"", ["\b"] = "\\b", ["\f"] = "\\f",
     ["\n"] = "\\n", ["\r"] = "\\r", ["\t"] = "\\t"
   }
-  
+
   local function escape_char(c)
     return escape_char_map[c] or string.format("\\u%04x", c:byte())
   end
-  
+
   local function encode_string(val)
     return '"' .. val:gsub('[%z\1-\31\\"]', escape_char) .. '"'
   end
-  
+
   function encode(val)
     local t = type(val)
     if t == "string" then return encode_string(val)
@@ -49,21 +49,21 @@ local json = require("dkjson") or require("cjson") or (function()
     end
     error("Cannot encode type: " .. t)
   end
-  
+
   function decode(str)
     local pos = 1
     local function skip_whitespace()
       pos = str:find("[^ \t\r\n]", pos) or #str + 1
     end
-    
+
     local function decode_error(msg)
       error(string.format("JSON decode error at position %d: %s", pos, msg))
     end
-    
+
     local function decode_value()
       skip_whitespace()
       local char = str:sub(pos, pos)
-      
+
       if char == '"' then
         -- String
         pos = pos + 1
@@ -151,11 +151,11 @@ local json = require("dkjson") or require("cjson") or (function()
         end
       end
     end
-    
+
     local ok, result = pcall(decode_value)
     if ok then return result else return nil, result end
   end
-  
+
   return {encode = encode, decode = decode}
 end)()
 
@@ -166,9 +166,12 @@ local function execute_sql(query, get_results)
   local cmd = string.format("sqlite3 -separator '|' '%s' '%s'", db_path, query)
   if get_results then
     local handle = io.popen(cmd)
-    local result = handle:read("*a")
-    handle:close()
-    return result
+    if handle then
+      local result = handle:read("*a")
+      handle:close()
+      return result
+    end
+    return nil
   else
     os.execute(cmd)
   end
@@ -189,7 +192,7 @@ execute_sql([[
 local function get_all_todos()
   local result = execute_sql("SELECT id, content, done FROM todos ORDER BY done ASC, created_at ASC;", true)
   local todos = {}
-  
+
   for line in result:gmatch("[^\n]+") do
     local id, content, done = line:match("^(%d+)|(.+)|(%d+)$")
     if id then
@@ -200,7 +203,7 @@ local function get_all_todos()
       })
     end
   end
-  
+
   return todos
 end
 
@@ -213,23 +216,23 @@ end
 
 local function update_todo(id, content, done)
   local set_clauses = {}
-  
+
   if content then
     local escaped = content:gsub("'", "''")
     table.insert(set_clauses, string.format("content = '%s'", escaped))
   end
-  
+
   if done ~= nil then
     table.insert(set_clauses, string.format("done = %d", done and 1 or 0))
   end
-  
+
   if #set_clauses > 0 then
     table.insert(set_clauses, "updated_at = CURRENT_TIMESTAMP")
     local query = string.format("UPDATE todos SET %s WHERE id = %d;", table.concat(set_clauses, ", "), id)
     execute_sql(query)
     return true
   end
-  
+
   return false
 end
 
@@ -241,7 +244,7 @@ end
 -- MCP protocol implementation
 local function handle_request(request)
   local method = request.method
-  
+
   if method == "initialize" then
     return {
       protocolVersion = "2024-11-05",
@@ -253,7 +256,7 @@ local function handle_request(request)
         version = "1.0.0"
       }
     }
-  
+
   elseif method == "tools/list" then
     return {
       tools = {
@@ -317,15 +320,15 @@ local function handle_request(request)
         }
       }
     }
-  
+
   elseif method == "tools/call" then
     local params = request.params or {}
     local tool_name = params.name
     local args = params.arguments or {}
-    
+
     if tool_name == "list_todos" then
       return { todos = get_all_todos() }
-    
+
     elseif tool_name == "add_todo" then
       if args.content then
         local id = add_todo(args.content)
@@ -333,7 +336,7 @@ local function handle_request(request)
       else
         return { error = "Missing content parameter" }
       end
-    
+
     elseif tool_name == "update_todo" then
       if args.id then
         local success = update_todo(args.id, args.content, args.done)
@@ -341,7 +344,7 @@ local function handle_request(request)
       else
         return { error = "Missing id parameter" }
       end
-    
+
     elseif tool_name == "delete_todo" then
       if args.id then
         local success = delete_todo(args.id)
@@ -349,11 +352,11 @@ local function handle_request(request)
       else
         return { error = "Missing id parameter" }
       end
-    
+
     else
       return { error = "Unknown tool: " .. tostring(tool_name) }
     end
-  
+
   else
     return { error = "Unknown method: " .. tostring(method) }
   end
@@ -363,17 +366,17 @@ end
 while true do
   local line = io.read("*l")
   if not line then break end
-  
+
   local ok, request = pcall(json.decode, line)
   if ok and request then
     local response = handle_request(request)
-    
+
     -- Add JSON-RPC fields
     response.jsonrpc = "2.0"
     if request.id then
       response.id = request.id
     end
-    
+
     -- Send response
     io.write(json.encode(response) .. "\n")
     io.flush()

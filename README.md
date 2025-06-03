@@ -1,13 +1,15 @@
 # todo-mcp.nvim
 
 > ⚠️ **WORK IN PROGRESS - DO NOT USE IN PRODUCTION**
-> 
+>
 > This plugin is under active development and APIs may change without notice.
 > Please wait for the stable v1.0 release before using in your workflow.
 
 **The missing link between code comments and task management.**
 
-todo-mcp.nvim is the definitive bridge that transforms ephemeral TODO comments into persistent, actionable tasks with AI-powered insights and seamless external integrations.
+todo-mcp.nvim is the definitive bridge that transforms ephemeral TODO
+comments into persistent, actionable tasks with AI-powered insights and
+seamless external integrations.
 
 ![GitHub stars](https://img.shields.io/github/stars/thatguyinabeanie/todo-mcp.nvim?style=social)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
@@ -20,10 +22,12 @@ todo-mcp.nvim is the definitive bridge that transforms ephemeral TODO comments i
 - **Smooth Animations**: Fade transitions and responsive interactions
 - **Progress Visualization**: Real-time completion bars and statistics
 - **Modern Design**: Unicode borders, elegant typography, and visual hierarchy
-- **Multiple Themes**: 5 built-in presets (minimal, emoji, modern, sections, ascii)
+- **Multiple Themes**: 5 built-in presets (minimal, emoji, modern, sections,
+  ascii)
 - **Enhanced Navigation**: j/k keys with automatic preview updates
 
 ### 🚀 **Core Features**
+
 - **Fast Performance**: SQLite-backed for instant responsiveness
 - **MCP Integration**: LLMs can read/write todos via Model Context Protocol
 - **Vim-Native**: Intuitive keybindings and modal interface
@@ -33,6 +37,7 @@ todo-mcp.nvim is the definitive bridge that transforms ephemeral TODO comments i
 - **Lazy Loading**: Fast startup with proper lazy loading support
 
 ### 🔌 **Enterprise Integrations**
+
 - **Linear**: Sync with modern development workflows
 - **GitHub**: Bridge code comments to GitHub issues
 - **JIRA**: Enterprise project management integration
@@ -85,21 +90,25 @@ Alternative (no lazy loading):
 ### Inside Todo List
 
 **Navigation & Actions:**
+
 - `j/k` - Navigate with live preview updates
 - `<CR>` - Toggle todo done/undone
 - `p` - Toggle floating preview window
 
 **Todo Management:**
+
 - `a` - Add new todo
 - `A` - Add todo with priority/tags/file linking
 - `d` - Delete todo under cursor
 
 **Search & Navigation:**
+
 - `/` - Search todos with filters
 - `<C-c>` - Clear search
 - `gf` - Jump to linked file
 
 **Export & Help:**
+
 - `em` - Export to Markdown
 - `ej` - Export to JSON
 - `ey` - Export to YAML
@@ -122,18 +131,32 @@ Alternative (no lazy loading):
 ### With MCP (for LLMs)
 
 1. Start the MCP server:
-```bash
-lua ~/.local/share/nvim/plugged/todo-mcp.nvim/mcp-server.lua
-```
 
-2. Configure your MCP client (e.g., Claude Desktop) to connect to the server.
+   ```bash
+lua ~/.local/share/nvim/plugged/todo-mcp.nvim/mcp-server.lua
+   ```
+
+2. Configure your MCP client (e.g., Claude Desktop) to connect to the
+   server.
 
 3. Available MCP tools:
-- `list_todos` - List all todos
-- `add_todo` - Add a new todo with metadata
-- `update_todo` - Update todo content or status
-- `delete_todo` - Delete a todo
-- `search_todos` - Search and filter todos
+
+   - `list_todos` - List all todos
+   - `add_todo` - Add a new todo with metadata
+   - `update_todo` - Update todo content or status
+   - `delete_todo` - Delete a todo
+   - `search_todos` - Search and filter todos
+
+#### External Issue Tracker Integration
+
+Additional MCP servers are available for integrating with external issue
+trackers (GitHub, JIRA, Linear). These require additional dependencies:
+
+```bash
+luarocks install dkjson luasocket
+```
+
+See `mcp-servers/README.md` for setup instructions.
 
 ## Configuration
 
@@ -141,30 +164,30 @@ lua ~/.local/share/nvim/plugged/todo-mcp.nvim/mcp-server.lua
 require("todo-mcp").setup({
   -- Database location
   db_path = vim.fn.expand("~/.local/share/nvim/todo-mcp.db"),
-  
+
   -- UI settings
   ui = {
     width = 80,
     height = 30,
     border = "rounded",
-    
+
     -- Modern UI options (new!)
     modern_ui = true,           -- Enable modern styling
     animation_speed = 150,      -- Animation duration (ms)
     floating_preview = true,    -- Show floating preview windows
     preview_enabled = true,     -- Enable preview on navigation
     status_line = true,         -- Status line integration
-    
+
     -- View style (see View Styles section below)
     style = {
-      preset = "modern"  -- minimal | emoji | modern | sections | compact | ascii
+      preset = "modern" -- minimal | emoji | modern | sections | compact | ascii
     }
   },
-  
+
   -- Internal keymaps (inside todo list popup)
   keymaps = {
     add = "a",
-    delete = "d", 
+    delete = "d",
     toggle_done = "<CR>",
     quit = "q",
   },
@@ -187,14 +210,16 @@ vim.keymap.set("n", "<leader>tA", "<Plug>(todo-mcp-add-advanced)")
 The plugin supports multiple view styles to match your preference:
 
 ### Minimal
-```
+
+```text
 ○ Buy milk
 ○ Fix parser bug
 ● Deploy to staging
 ```
 
 ### Modern (New Default)
-```
+
+```text
 📝 Todo Manager (2/5 done)
     ▓▓▓▓░░░░░░░░░░░░░░░░ 40% │ 3 active │ 1 in progress
 ─────────────────────────────────────────────────────
@@ -202,7 +227,7 @@ The plugin supports multiple view styles to match your preference:
 ## ▲ High Priority
 ● 🔥 Fix parser bug @main.lua:42 #urgent
 
-## ■ Medium Priority  
+## ■ Medium Priority
 ◐ ⚡ Update documentation
 ○ 💤 Review pull requests
 
@@ -211,18 +236,20 @@ The plugin supports multiple view styles to match your preference:
 ```
 
 ### Emoji
-```
+
+```text
 ○ Buy milk
 ◐ 🔥 Fix parser bug @main.lua:42
 ✅ 🚀 Deploy to staging
 ```
 
 ### Sections
-```
+
+```text
 ## 🔥 High Priority
 ◐ Fix parser bug
 
-## ⚡ Medium Priority  
+## ⚡ Medium Priority
 ○ Update docs
 
 ## ✅ Completed
@@ -230,11 +257,12 @@ The plugin supports multiple view styles to match your preference:
 ```
 
 ### Custom Style
+
 ```lua
 ui = {
   style = {
     status_indicators = { todo = "▷", in_progress = "▶", done = "■" },
-    priority_style = "bracket",  -- Shows [H] [M] [L]
+    priority_style = "bracket", -- Shows [H] [M] [L]
     layout = "priority_sections",
     show_metadata = true,
     show_timestamps = "relative",
@@ -243,7 +271,7 @@ ui = {
   
   -- Modern UI customization
   modern_ui = true,
-  animation_speed = 200,  -- Slower animations
+  animation_speed = 200, -- Slower animations
   floating_preview = false  -- Disable floating previews
 }
 ```
@@ -252,7 +280,7 @@ ui = {
 
 The new floating preview system shows rich todo details:
 
-```
+```text
 ┌─ Preview ──────────────────────┐
 │ 📋 Fix parser bug              │
 │                                │
@@ -284,8 +312,8 @@ Add to your MCP configuration file:
 {
   "mcpServers": {
     "todo-mcp": {
-      "command": "python3",
-      "args": ["/path/to/todo-mcp.nvim/mcp-server.py"],
+      "command": "lua",
+      "args": ["/path/to/todo-mcp.nvim/mcp-server.lua"],
       "env": {
         "TODO_MCP_DB": "~/.local/share/nvim/todo-mcp.db"
       }
@@ -294,20 +322,34 @@ Add to your MCP configuration file:
 }
 ```
 
+## Language Support
+
+todo-mcp.nvim automatically works with **any language that Neovim
+recognizes**. It uses Neovim's built-in filetype detection, so if Neovim can
+detect the file type, todo-mcp.nvim will work with it.
+
+- **No configuration needed** - Works out of the box with all languages
+- **Automatic detection** - Uses Neovim's filetype system
+- **Framework awareness** - Detects common frameworks when relevant
+- **Lazy loading** - Language features load only when needed
+
 ## Performance & Compatibility
 
 **Requirements:**
+
 - Neovim 0.7+ (0.9+ recommended for best experience)
 - SQLite3 (system command)
 - Lua 5.1+ or LuaJIT (for standalone MCP server)
 
 **Performance:**
+
 - **Instant startup**: Lazy loading with minimal impact
 - **Smooth animations**: Configurable 50-500ms transitions
 - **Efficient rendering**: Cached queries and optimized updates
 - **Memory conscious**: Automatic cleanup of preview windows
 
 **Terminal Support:**
+
 - **Modern terminals**: Full Unicode and color support
 - **Legacy terminals**: ASCII preset for compatibility
 - **SSH/Remote**: Works seamlessly over SSH connections

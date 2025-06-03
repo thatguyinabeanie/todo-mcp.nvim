@@ -1,4 +1,16 @@
+-- AI Context Module
+-- Provides intelligent context detection for todos using Neovim's built-in systems
+-- Automatically works with any language that Neovim recognizes
 local M = {}
+
+-- Use Neovim's built-in filetype detection
+M.get_language_from_file = function(filepath)
+  -- Let Neovim detect the filetype
+  local filetype = vim.filetype.match({ filename = filepath })
+  
+  -- Return the filetype or 'unknown' if not detected
+  return filetype or "unknown"
+end
 
 -- Enhanced context detection with AI-like intelligence
 M.detect_enhanced_context = function(filepath, line_content, surrounding_lines)
@@ -167,22 +179,35 @@ M.analyze_project_context = function(filepath)
     return analysis
   end
   
-  -- Detect project type from package.json, requirements.txt, etc.
-  local package_json = project_root .. "/package.json"
-  local requirements_txt = project_root .. "/requirements.txt"
-  local cargo_toml = project_root .. "/Cargo.toml"
-  local go_mod = project_root .. "/go.mod"
+  -- Use Neovim's filetype detection
+  local lang = M.get_language_from_file(filepath)
   
-  if vim.fn.filereadable(package_json) == 1 then
-    analysis.project_type = "javascript"
-    analysis.framework_detected = M.detect_js_frameworks(package_json)
-  elseif vim.fn.filereadable(requirements_txt) == 1 then
-    analysis.project_type = "python"
-    analysis.framework_detected = M.detect_python_frameworks(requirements_txt)
-  elseif vim.fn.filereadable(cargo_toml) == 1 then
-    analysis.project_type = "rust"
-  elseif vim.fn.filereadable(go_mod) == 1 then
-    analysis.project_type = "go"
+  -- Only check project files relevant to the detected language
+  if lang == "javascript" or lang == "typescript" then
+    local package_json = project_root .. "/package.json"
+    if vim.fn.filereadable(package_json) == 1 then
+      analysis.project_type = lang
+      analysis.framework_detected = M.detect_js_frameworks(package_json)
+    end
+  elseif lang == "python" then
+    -- Only load Python detection if we're in a Python file
+    local requirements_txt = project_root .. "/requirements.txt"
+    if vim.fn.filereadable(requirements_txt) == 1 then
+      analysis.project_type = "python"
+      analysis.framework_detected = M.detect_python_frameworks_lazy(requirements_txt)
+    end
+  elseif lang == "rust" then
+    local cargo_toml = project_root .. "/Cargo.toml"
+    if vim.fn.filereadable(cargo_toml) == 1 then
+      analysis.project_type = "rust"
+    end
+  elseif lang == "go" then
+    local go_mod = project_root .. "/go.mod"
+    if vim.fn.filereadable(go_mod) == 1 then
+      analysis.project_type = "go"
+    end
+  else
+    analysis.project_type = lang
   end
   
   -- Git context
@@ -445,25 +470,33 @@ M.detect_js_frameworks = function(package_json)
   return frameworks
 end
 
-M.detect_python_frameworks = function(requirements_txt)
-  local frameworks = {}
-  
-  local content = vim.fn.readfile(requirements_txt)
-  local requirements_str = table.concat(content, "\n"):lower()
-  
-  if requirements_str:find("django") then
-    table.insert(frameworks, "django")
+-- Lazy load Python framework detection only when needed
+M.detect_python_frameworks_lazy = function(requirements_txt)
+  -- Only load the actual detection if we haven't already
+  if not M._python_framework_detector then
+    M._python_framework_detector = function(req_file)
+      local frameworks = {}
+      local content = vim.fn.readfile(req_file)
+      local requirements_str = table.concat(content, "\n"):lower()
+      
+      if requirements_str:find("django") then
+        table.insert(frameworks, "django")
+      end
+      if requirements_str:find("flask") then
+        table.insert(frameworks, "flask")
+      end
+      if requirements_str:find("fastapi") then
+        table.insert(frameworks, "fastapi")
+      end
+      if requirements_str:find("pytest") then
+        table.insert(frameworks, "pytest")
+      end
+      
+      return frameworks
+    end
   end
   
-  if requirements_str:find("flask") then
-    table.insert(frameworks, "flask")
-  end
-  
-  if requirements_str:find("fastapi") then
-    table.insert(frameworks, "fastapi")
-  end
-  
-  return frameworks
+  return M._python_framework_detector(requirements_txt)
 end
 
 M.classify_branch_type = function(branch_name)

@@ -26,10 +26,34 @@ In mcp-config.json:
 }
 --]]
 
-local json = require('json') or require('dkjson')
-local http = require('socket.http')
-local ltn12 = require('ltn12')
-local mime = require('mime')
+-- Check for required dependencies
+local ok, json = pcall(require, 'dkjson')
+if not ok then
+  json = nil
+  ok, json = pcall(require, 'json')
+end
+if not ok or not json then
+  io.stderr:write("Error: Missing JSON library. Install with: luarocks install dkjson\n")
+  os.exit(1)
+end
+
+local ok, http = pcall(require, 'socket.http')
+if not ok then
+  io.stderr:write("Error: Missing LuaSocket. Install with: luarocks install luasocket\n")
+  os.exit(1)
+end
+
+local ok, ltn12 = pcall(require, 'ltn12')
+if not ok then
+  io.stderr:write("Error: Missing LTN12 (part of LuaSocket). Install with: luarocks install luasocket\n")
+  os.exit(1)
+end
+
+local ok, mime = pcall(require, 'mime')
+if not ok then
+  io.stderr:write("Error: Missing MIME library (part of LuaSocket). Install with: luarocks install luasocket\n")
+  os.exit(1)
+end
 
 -- JIRA API configuration
 local JIRA_URL = os.getenv("JIRA_URL")
@@ -272,6 +296,38 @@ local function create_issue(todo_data)
   return jira_request("/issue", "POST", issue_data)
 end
 
+-- Get available transitions for an issue
+local function get_issue_transitions(issue_key)
+  local endpoint = "/issue/" .. issue_key .. "/transitions"
+  return jira_request(endpoint)
+end
+
+-- Find appropriate transition for status
+local function find_status_transition(transitions, target_status)
+  if not transitions or not transitions.transitions then
+    return nil
+  end
+  
+  local status_map = {
+    todo = {"To Do", "Open", "Backlog"},
+    in_progress = {"In Progress", "In Development", "In Review"},
+    done = {"Done", "Closed", "Resolved", "Complete"}
+  }
+  
+  local target_names = status_map[target_status] or {}
+  
+  for _, transition in ipairs(transitions.transitions) do
+    for _, name in ipairs(target_names) do
+      if transition.to and transition.to.name and 
+         transition.to.name:lower() == name:lower() then
+        return transition
+      end
+    end
+  end
+  
+  return nil
+end
+
 -- Update JIRA issue
 local function update_issue(issue_key, updates)
   local endpoint = "/issue/" .. issue_key
@@ -283,7 +339,7 @@ local function update_issue(issue_key, updates)
   -- Handle status transitions separately
   if updates.status then
     local transitions = get_issue_transitions(issue_key)
-    local target_transition = M.find_status_transition(transitions, updates.status)
+    local target_transition = find_status_transition(transitions, updates.status)
     
     if target_transition then
       local transition_result = jira_request(endpoint .. "/transitions", "POST", {
@@ -308,39 +364,6 @@ local function update_issue(issue_key, updates)
   end
   
   return { success = true }
-end
-
--- Get available transitions for an issue
-local function get_issue_transitions(issue_key)
-  local endpoint = "/issue/" .. issue_key .. "/transitions"
-  return jira_request(endpoint)
-end
-
--- Find appropriate transition for status
-local function find_status_transition(transitions, target_status)
-  if not transitions or not transitions.transitions then
-    return nil
-  end
-  
-  local status_map = {
-    todo = {"To Do", "Open", "Backlog"},
-    in_progress = {"In Progress", "In Development", "In Review"},
-    done = {"Done", "Closed", "Resolved", "Complete"}
-  }
-  
-  local target_names = status_map[target_status] or {}
-  
-  for _, transition in ipairs(transitions.transitions) do
-    local to_status = transition.to and transition.to.name
-    
-    for _, target_name in ipairs(target_names) do
-      if to_status and to_status:lower():find(target_name:lower()) then
-        return transition
-      end
-    end
-  end
-  
-  return nil
 end
 
 -- Search JIRA issues
@@ -383,7 +406,7 @@ local function handle_list_tools()
             project_key = { type = "string", description = "JIRA project key (optional)" },
             issue_type = { type = "string", description = "JIRA issue type (optional)" }
           },
-          required = ["title"]
+          required = {"title"}
         }
       },
       {
@@ -397,7 +420,7 @@ local function handle_list_tools()
             summary = { type = "string", description = "Updated summary" },
             priority = { type = "string", enum = {"high", "medium", "low"} }
           },
-          required = ["issue_key"]
+          required = {"issue_key"}
         }
       },
       {
@@ -409,7 +432,7 @@ local function handle_list_tools()
             jql = { type = "string", description = "JQL query string" },
             max_results = { type = "number", description = "Maximum results to return" }
           },
-          required = ["jql"]
+          required = {"jql"}
         }
       },
       {
@@ -420,7 +443,7 @@ local function handle_list_tools()
           properties = {
             issue_key = { type = "string", description = "JIRA issue key (e.g., PROJ-123)" }
           },
-          required = ["issue_key"]
+          required = {"issue_key"}
         }
       },
       {

@@ -233,7 +233,7 @@ function M.assert_does_not_match(pattern, text)
 end
 
 -- Add custom matchers to busted if available
-if assert then
+if assert and assert.register and type(assert.register) == "function" then
   assert:register("matcher", "has_element", function(state, arguments)
     local element = arguments[1]
     return function(value)
