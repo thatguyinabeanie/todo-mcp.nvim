@@ -423,4 +423,10 @@ M.update_with_sync = function(id, updates)
   return success
 end
 
+-- Clear all todos from database
+M.clear = function()
+  clear_cache()
+  db:eval("DELETE FROM todos")
+end
+
 return M

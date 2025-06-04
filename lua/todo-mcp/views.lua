@@ -328,11 +328,19 @@ M.render_todos = function(todos, style)
     -- Group by priority
     local groups = M.group_by_priority(todos)
     for _, group in ipairs(groups) do
-      if #group.todos > 0 then
+      -- Always show priority sections (high, medium, low), but hide empty "no priority" and "completed"
+      if group.key == "high" or group.key == "medium" or group.key == "low" or #group.todos > 0 then
         table.insert(lines, group.title)
         table.insert(lines, "")
-        for _, todo in ipairs(group.todos) do
-          table.insert(lines, M.render_todo_line(todo, style))
+        if #group.todos > 0 then
+          for _, todo in ipairs(group.todos) do
+            table.insert(lines, M.render_todo_line(todo, style))
+          end
+        else
+          -- Show empty message for priority sections
+          if group.key ~= "none" and group.key ~= "done" then
+            table.insert(lines, "  (none)")
+          end
         end
         table.insert(lines, "")
       end
