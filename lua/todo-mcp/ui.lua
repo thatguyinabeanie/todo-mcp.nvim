@@ -78,7 +78,7 @@ M.open = function()
     height = height,
     border = border_style,
     style = "minimal",
-    title = " 📋 Todo Manager (MCP) ",
+    title = " 📋 Todo Manager ",
     title_pos = "center",
     noautocmd = true,
     zindex = 50  -- Base z-index for main window
@@ -163,43 +163,13 @@ M.refresh = function()
     -- Use new view system
     local views = require("todo-mcp.views")
     
-    -- Clean header with stats and help hint
+    -- Simple help hint right-aligned
     local help_hint = "? for help"
-    local header_left = ""
-    
-    if #M.state.todos > 0 then
-      local done_count = 0
-      local in_progress_count = 0
-      for _, todo in ipairs(M.state.todos) do
-        if todo.done or todo.status == "done" then 
-          done_count = done_count + 1 
-        elseif todo.status == "in_progress" then
-          in_progress_count = in_progress_count + 1
-        end
-      end
-      
-      local total = #M.state.todos
-      local active = total - done_count
-      
-      -- Clean stats display
-      header_left = string.format("%d/%d done", done_count, total)
-      if in_progress_count > 0 then
-        header_left = header_left .. string.format(" • %d in progress", in_progress_count)
-      end
-    else
-      header_left = "No todos"
-    end
-    
-    -- Create header line with help hint right-aligned
     local window_width = M.config.width
-    local header_left_width = vim.fn.strwidth(header_left)
-    local help_hint_width = vim.fn.strwidth(help_hint)
-    local padding = window_width - header_left_width - help_hint_width
-    padding = math.max(1, padding)  -- Ensure at least 1 space
+    local padding = window_width - vim.fn.strwidth(help_hint)
+    padding = math.max(0, padding)
     
-    local header_line = header_left .. string.rep(" ", padding) .. help_hint
-    
-    table.insert(lines, header_line)
+    table.insert(lines, string.rep(" ", padding) .. help_hint)
     table.insert(lines, "")
     
     -- Add search header if active  
@@ -269,6 +239,32 @@ M.refresh = function()
       end
     end
   end
+  
+  -- Update window title with stats
+  M.update_window_title()
+end
+
+-- Update window title with current stats
+M.update_window_title = function()
+  if not M.state.win or not api.nvim_win_is_valid(M.state.win) then
+    return
+  end
+  
+  local title = " 📋 Todo Manager"
+  if M.state.todos and #M.state.todos > 0 then
+    local done_count = 0
+    for _, todo in ipairs(M.state.todos) do
+      if todo.done or todo.status == "done" then 
+        done_count = done_count + 1 
+      end
+    end
+    title = string.format(" 📋 Todo Manager (%d/%d) ", done_count, #M.state.todos)
+  else
+    title = " 📋 Todo Manager "
+  end
+  
+  -- Update window config
+  api.nvim_win_set_config(M.state.win, { title = title })
 end
 
 M.setup_keymaps = function()
