@@ -328,11 +328,19 @@ M.render_todos = function(todos, style)
     -- Group by priority
     local groups = M.group_by_priority(todos)
     for _, group in ipairs(groups) do
-      if #group.todos > 0 then
+      -- Always show priority sections (high, medium, low), but hide empty "no priority" and "completed"
+      if group.key == "high" or group.key == "medium" or group.key == "low" or #group.todos > 0 then
         table.insert(lines, group.title)
         table.insert(lines, "")
-        for _, todo in ipairs(group.todos) do
-          table.insert(lines, M.render_todo_line(todo, style))
+        if #group.todos > 0 then
+          for _, todo in ipairs(group.todos) do
+            table.insert(lines, M.render_todo_line(todo, style))
+          end
+        else
+          -- Show empty message for priority sections
+          if group.key ~= "none" and group.key ~= "done" then
+            table.insert(lines, "  (none)")
+          end
         end
         table.insert(lines, "")
       end
@@ -367,6 +375,12 @@ M.setup_highlights = function()
   -- Section headers
   vim.api.nvim_set_hl(0, "TodoSectionHeader", { fg = "#89b4fa", bold = true })
   vim.api.nvim_set_hl(0, "TodoSeparator", { fg = "#585b70" })
+  
+  -- Border styling
+  vim.api.nvim_set_hl(0, "TodoBorderHelp", { fg = "#74c7ec", italic = true })
+  vim.api.nvim_set_hl(0, "TodoBorderCorner", { link = "FloatBorder" })
+  vim.api.nvim_set_hl(0, "TodoBorderHorizontal", { link = "FloatBorder" })
+  vim.api.nvim_set_hl(0, "TodoBorderVertical", { link = "FloatBorder" })
 end
 
 return M

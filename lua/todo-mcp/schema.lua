@@ -7,7 +7,10 @@ M.todos_schema = {
   title = "text",  -- New: extracted from frontmatter
   content = "text", -- Now stores markdown body only
   status = {"text", default = "todo"}, -- todo, in_progress, done
-  priority = {"text", default = "medium"},
+  done = {"int", default = 0}, -- Legacy compatibility: 0 or 1
+  priority = {"text", default = "medium"}, -- high, medium, low
+  section = {"text", default = "Tasks"}, -- Changed from priority to section
+  position = {"int", default = 0}, -- Position within section
   tags = {"text", default = ""},
   file_path = "text",
   line_number = "int",
@@ -26,7 +29,10 @@ M.todos_sql = [[
     title TEXT NOT NULL,
     content TEXT DEFAULT '',
     status TEXT DEFAULT 'todo',
+    done INTEGER DEFAULT 0,
     priority TEXT DEFAULT 'medium',
+    section TEXT DEFAULT 'Tasks',
+    position INTEGER DEFAULT 0,
     tags TEXT DEFAULT '',
     file_path TEXT,
     line_number INTEGER,

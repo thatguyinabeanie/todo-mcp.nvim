@@ -31,7 +31,7 @@ M.setup = function(db_path)
   -- Check if this is a new database by seeing if todos table exists
   local table_exists = false
   local tables = db:eval("SELECT name FROM sqlite_master WHERE type='table' AND name='todos'")
-  if tables and #tables > 0 then
+  if tables and type(tables) == "table" and #tables > 0 then
     table_exists = true
   end
   
@@ -98,7 +98,7 @@ M.get_all = function()
     end
     
     -- Add optional columns if they exist
-    local optional_cols = { "title", "status", "priority", "tags", "file_path", "line_number", "metadata", "frontmatter_raw", "completed_at", "done" }
+    local optional_cols = { "title", "status", "priority", "section", "position", "tags", "file_path", "line_number", "metadata", "frontmatter_raw", "completed_at", "done" }
     for _, col in ipairs(optional_cols) do
       if columns[col] then
         table.insert(select_cols, col)
@@ -112,7 +112,9 @@ M.get_all = function()
   end
   
   -- Add ORDER BY clause
-  if columns.status then
+  if columns.section and columns.position then
+    select_sql = select_sql .. " ORDER BY section ASC, position ASC"
+  elseif columns.status then
     select_sql = select_sql .. " ORDER BY status ASC, created_at ASC"
   elseif columns.done then
     select_sql = select_sql .. " ORDER BY done ASC, created_at ASC"
@@ -195,7 +197,8 @@ M.add = function(content, options)
     content = options.content or content,
     status = options.status or "todo",
     done = options.done and 1 or 0,
-    priority = options.priority or "medium",
+    section = options.section or "Tasks",
+    position = options.position or 0,
     tags = options.tags or "",
     file_path = options.file_path,
     line_number = options.line_number,
@@ -421,6 +424,12 @@ M.update_with_sync = function(id, updates)
   end
   
   return success
+end
+
+-- Clear all todos from database
+M.clear = function()
+  clear_cache()
+  db:eval("DELETE FROM todos")
 end
 
 return M

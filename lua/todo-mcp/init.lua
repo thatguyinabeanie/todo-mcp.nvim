@@ -19,14 +19,18 @@ M.setup = function(opts)
       border = "rounded",
       view_mode = "list", -- "list" or "markdown"
       style = {
-        preset = "emoji", -- minimal | emoji | sections | compact | ascii
-        -- Custom overrides (optional)
-        -- status_indicators = { todo = "○", in_progress = "◐", done = "✓" },
-        -- priority_style = "emoji", -- emoji | color | symbol | bracket | none
-        -- layout = "grouped", -- flat | grouped | priority_sections
-        -- show_metadata = true,
-        -- show_timestamps = "relative", -- relative | absolute | none
-        -- done_style = "dim", -- dim | strikethrough | hide
+        preset = "sections", -- Uses priority sections with emojis
+        -- Beautiful defaults with priority sections and emoji
+        priority_style = "emoji",
+        priority_indicators = {
+          high = "🔥",
+          medium = "⚡",
+          low = "💤"
+        },
+        layout = "priority_sections", -- Groups by priority
+        show_metadata = true,
+        show_timestamps = "relative",
+        done_style = "dim"
       }
     },
     -- Internal keymaps (for todo list popup)
