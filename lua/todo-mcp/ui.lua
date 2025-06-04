@@ -163,10 +163,9 @@ M.refresh = function()
     -- Use new view system
     local views = require("todo-mcp.views")
     
-    -- Modern title bar with progress visualization and help hint
-    local title_left = "📝 Todo Manager"
+    -- Clean header with stats and help hint
     local help_hint = "? for help"
-    local stats_line = ""
+    local header_left = ""
     
     if #M.state.todos > 0 then
       local done_count = 0
@@ -180,31 +179,27 @@ M.refresh = function()
       end
       
       local total = #M.state.todos
-      local completion_pct = math.floor((done_count / total) * 100)
+      local active = total - done_count
       
-      -- Progress bar visualization
-      local bar_width = 20
-      local filled = math.floor((done_count / total) * bar_width)
-      local progress_bar = string.rep("\u{2593}", filled) .. string.rep("\u{2591}", bar_width - filled)
-      
-      title_left = title_left .. " (" .. done_count .. "/" .. total .. " done)"
-      stats_line = string.format("    %s %d%% │ %d active │ %d in progress", 
-        progress_bar, completion_pct, total - done_count, in_progress_count)
+      -- Clean stats display
+      header_left = string.format("%d/%d done", done_count, total)
+      if in_progress_count > 0 then
+        header_left = header_left .. string.format(" • %d in progress", in_progress_count)
+      end
+    else
+      header_left = "No todos"
     end
     
-    -- Create title line with help hint right-aligned
+    -- Create header line with help hint right-aligned
     local window_width = M.config.width
-    local title_left_width = vim.fn.strwidth(title_left)
+    local header_left_width = vim.fn.strwidth(header_left)
     local help_hint_width = vim.fn.strwidth(help_hint)
-    local padding = window_width - title_left_width - help_hint_width
+    local padding = window_width - header_left_width - help_hint_width
     padding = math.max(1, padding)  -- Ensure at least 1 space
     
-    local title_line = title_left .. string.rep(" ", padding) .. help_hint
+    local header_line = header_left .. string.rep(" ", padding) .. help_hint
     
-    table.insert(lines, title_line)
-    if stats_line ~= "" then
-      table.insert(lines, stats_line)
-    end
+    table.insert(lines, header_line)
     table.insert(lines, "")
     
     -- Add search header if active  
