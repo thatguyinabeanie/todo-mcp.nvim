@@ -87,6 +87,74 @@ M.migrations = {
         db:eval("UPDATE todos SET tags = '' WHERE tags IS NULL")
       end
     end
+  },
+  
+  -- Migration 3: Convert priority to flexible sections
+  {
+    version = 3,
+    up = function(db)
+      -- Get current columns
+      local columns = {}
+      local pragma = db:eval("PRAGMA table_info(todos)")
+      for _, col in ipairs(pragma) do
+        columns[col.name] = true
+      end
+      
+      -- Add section and position columns if they don't exist
+      if not columns.section then
+        db:eval("ALTER TABLE todos ADD COLUMN section TEXT DEFAULT 'Tasks'")
+      end
+      
+      if not columns.position then
+        db:eval("ALTER TABLE todos ADD COLUMN position INTEGER DEFAULT 0")
+      end
+      
+      -- Migrate priority data to sections if priority column exists
+      if columns.priority then
+        db:eval([[
+          UPDATE todos 
+          SET section = CASE 
+            WHEN priority = 'high' THEN '🔥 High Priority'
+            WHEN priority = 'medium' THEN '⚡ Medium Priority'
+            WHEN priority = 'low' THEN '💤 Low Priority'
+            ELSE 'Tasks'
+          END
+          WHERE section IS NULL OR section = 'Tasks'
+        ]])
+        
+        -- Set position based on creation order within sections
+        db:eval([[
+          UPDATE todos 
+          SET position = (
+            SELECT COUNT(*) 
+            FROM todos t2 
+            WHERE t2.section = todos.section 
+            AND t2.created_at < todos.created_at
+          )
+        ]])
+      end
+    end
+  },
+  
+  -- Migration 4: Ensure done column exists for legacy compatibility
+  {
+    version = 4,
+    up = function(db)
+      -- Get current columns
+      local columns = {}
+      local pragma = db:eval("PRAGMA table_info(todos)")
+      for _, col in ipairs(pragma) do
+        columns[col.name] = true
+      end
+      
+      -- Add done column if it doesn't exist
+      if not columns.done then
+        db:eval("ALTER TABLE todos ADD COLUMN done INTEGER DEFAULT 0")
+        -- Sync done status from status column
+        db:eval("UPDATE todos SET done = 1 WHERE status = 'done'")
+        db:eval("UPDATE todos SET done = 0 WHERE status != 'done' OR status IS NULL")
+      end
+    end
   }
 }
 
