@@ -282,12 +282,7 @@ M.setup_keymaps = function()
   
   -- Add todo
   vim.keymap.set("n", keymaps.add, function()
-    vim.ui.input({ prompt = "New todo: " }, function(input)
-      if input and input ~= "" then
-        db.add(input)
-        M.refresh()
-      end
-    end)
+    M.start_inline_add()
   end, { buffer = buf })
   
   -- Delete todo
@@ -413,7 +408,7 @@ M.setup_keymaps = function()
       "│  p       - Toggle preview window          │",
       "│                                           │",
       "│  Todo Management:                         │",
-      "│  a       - Add new todo                   │",
+      "│  a/o     - Add new todo (inline editing)  │",
       "│  A       - Add todo with priority/tags    │",
       "│  d       - Delete todo                    │",
       "│                                           │",
@@ -465,6 +460,11 @@ M.setup_keymaps = function()
       api.nvim_buf_delete(help_buf, { force = true })
     end, { buffer = help_buf })
   end, { buffer = buf })
+  
+  -- Vim-like 'o' to add new line
+  vim.keymap.set("n", "o", function()
+    M.start_inline_add()
+  end, { buffer = buf, desc = "Add new todo (vim-like)" })
   
   -- Quit
   vim.keymap.set("n", keymaps.quit, M.close, { buffer = buf })
@@ -838,6 +838,103 @@ M.update_status_line = function()
   
   vim.g.todo_mcp_status = status_text
   vim.cmd("redrawstatus")
+end
+
+-- Inline add functionality
+M.start_inline_add = function()
+  -- Make buffer modifiable
+  api.nvim_buf_set_option(M.state.buf, "modifiable", true)
+  
+  -- Find insertion point (after last todo or after header)
+  local insert_line = 0
+  local lines = api.nvim_buf_get_lines(M.state.buf, 0, -1, false)
+  
+  -- Find the last non-empty line that's not a header
+  for i = #lines, 1, -1 do
+    local line = lines[i]
+    if line ~= "" and not line:match("^##") and not line:match("^📝") and not line:match("^🔍") then
+      insert_line = i
+      break
+    end
+  end
+  
+  -- If no todos yet, insert after header
+  if insert_line == 0 then
+    for i, line in ipairs(lines) do
+      if line:match("^📝") then
+        insert_line = i + 1
+        if lines[i + 1] and lines[i + 1] ~= "" then
+          insert_line = i + 2  -- Skip stats line
+        end
+        break
+      end
+    end
+  end
+  
+  -- Add new empty line with placeholder
+  local new_line = "○ "  -- Todo indicator + space for typing
+  api.nvim_buf_set_lines(M.state.buf, insert_line, insert_line, false, {new_line})
+  
+  -- Move cursor to end of new line and enter insert mode
+  api.nvim_win_set_cursor(M.state.win, {insert_line + 1, #new_line})
+  vim.cmd("startinsert!")
+  
+  -- Set up temporary keymaps for this editing session
+  M.setup_inline_edit_keymaps(insert_line + 1)
+end
+
+-- Setup keymaps for inline editing
+M.setup_inline_edit_keymaps = function(line_number)
+  local buf = M.state.buf
+  
+  -- Save on Enter
+  vim.keymap.set("i", "<CR>", function()
+    M.finish_inline_add(line_number)
+  end, { buffer = buf })
+  
+  -- Cancel on Escape
+  vim.keymap.set("i", "<Esc>", function()
+    M.cancel_inline_add(line_number)
+  end, { buffer = buf })
+end
+
+-- Finish adding new todo
+M.finish_inline_add = function(line_number)
+  local lines = api.nvim_buf_get_lines(M.state.buf, line_number - 1, line_number, false)
+  local content = lines[1] or ""
+  
+  -- Extract content (remove todo indicator)
+  content = content:gsub("^[○◐●✓]%s*", "")
+  
+  if content and content ~= "" then
+    -- Add to database
+    db.add(content)
+  end
+  
+  -- Clean up and refresh
+  M.cleanup_inline_edit()
+end
+
+-- Cancel adding new todo
+M.cancel_inline_add = function(line_number)
+  -- Remove the temporary line
+  api.nvim_buf_set_lines(M.state.buf, line_number - 1, line_number, false, {})
+  M.cleanup_inline_edit()
+end
+
+-- Cleanup after inline editing
+M.cleanup_inline_edit = function()
+  vim.cmd("stopinsert")
+  
+  -- Remove temporary keymaps
+  pcall(vim.keymap.del, "i", "<CR>", { buffer = M.state.buf })
+  pcall(vim.keymap.del, "i", "<Esc>", { buffer = M.state.buf })
+  
+  -- Make buffer non-modifiable again
+  api.nvim_buf_set_option(M.state.buf, "modifiable", false)
+  
+  -- Refresh the display
+  M.refresh()
 end
 
 return M
