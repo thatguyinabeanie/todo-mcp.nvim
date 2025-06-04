@@ -4,15 +4,9 @@ local db = require("todo-mcp.db")
 
 -- Get export directory from config
 local function get_export_dir()
-  local config = require("todo-mcp").opts
-  if not config or not config.export then
-    return vim.fn.expand("~/")
-  end
-  
-  local dir = config.export.directory
-  if type(dir) == "function" then
-    dir = dir()
-  end
+  local config_manager = require("todo-mcp.config")
+  local config = config_manager.get_config()
+  local dir = config_manager.get_export_dir(config)
   
   -- Ensure directory exists
   vim.fn.mkdir(vim.fn.expand(dir), "p")
@@ -21,7 +15,8 @@ end
 
 -- Check if confirmation is needed
 local function needs_confirmation()
-  local config = require("todo-mcp").opts
+  local config_manager = require("todo-mcp.config")
+  local config = config_manager.get_config()
   return config and config.export and config.export.confirm
 end
 

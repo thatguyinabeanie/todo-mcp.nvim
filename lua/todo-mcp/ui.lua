@@ -42,6 +42,37 @@ M.toggle = function()
   if M.state.win and api.nvim_win_is_valid(M.state.win) then
     M.close()
   else
+    -- Check if this is a git repository and if setup wizard is needed
+    local handle = io.popen("git rev-parse --is-inside-work-tree 2>/dev/null")
+    local is_git_repo = handle and handle:read("*a"):match("true")
+    if handle then handle:close() end
+    
+    if is_git_repo then
+      local config_manager = require("todo-mcp.config")
+      local wizard = require("todo-mcp.setup-wizard")
+      
+      -- Check if auto_setup is enabled in config
+      local config = config_manager.get_config()
+      if config.project and config.project.auto_setup and not config_manager.is_project_configured() then
+        -- Run setup wizard first
+        wizard.run(function(proj_config)
+          if proj_config then
+            -- Reload configuration
+            local merged_config = config_manager.get_config()
+            local db_path = config_manager.get_db_path(merged_config)
+            require("todo-mcp.db").setup(db_path)
+            -- Open UI after setup
+            M.open()
+          end
+        end, "project")
+        return
+      else
+        -- Ensure we're using the right database path
+        local db_path = config_manager.get_db_path(config)
+        require("todo-mcp.db").setup(db_path)
+      end
+    end
+    
     M.open()
   end
 end
@@ -429,6 +460,9 @@ M.setup_keymaps = function()
       "│  ey      - Export to YAML                 │",
       "│  ea      - Export all formats             │",
       "│                                           │",
+      "│  UI Options:                              │",
+      "│  S       - Cycle visual style             │",
+      "│                                           │",
       "│  ?       - Show this help                 │",
       "│  q/<Esc> - Close                          │",
       "│                                           │",
@@ -465,6 +499,11 @@ M.setup_keymaps = function()
   -- Quit
   vim.keymap.set("n", keymaps.quit, M.close, { buffer = buf })
   vim.keymap.set("n", "<Esc>", M.close, { buffer = buf })
+  
+  -- Cycle through visual styles
+  vim.keymap.set("n", "S", function()
+    M.cycle_style()
+  end, { buffer = buf, desc = "Cycle visual style" })
 end
 
 -- Helper to calculate header offset
@@ -834,6 +873,62 @@ M.update_status_line = function()
   
   vim.g.todo_mcp_status = status_text
   vim.cmd("redrawstatus")
+end
+
+-- Cycle through visual styles
+M.cycle_style = function()
+  local config_manager = require("todo-mcp.config")
+  local config = config_manager.get_config()
+  
+  -- Define style order
+  local styles = {"modern", "minimal", "emoji", "sections", "compact", "ascii"}
+  local current_style = config.ui.style.preset or "modern"
+  
+  -- Find current index
+  local current_index = 1
+  for i, style in ipairs(styles) do
+    if style == current_style then
+      current_index = i
+      break
+    end
+  end
+  
+  -- Get next style
+  local next_index = (current_index % #styles) + 1
+  local next_style = styles[next_index]
+  
+  -- Update config
+  config.ui.style.preset = next_style
+  
+  -- Save to appropriate config file
+  local handle = io.popen("git rev-parse --is-inside-work-tree 2>/dev/null")
+  local is_git_repo = handle and handle:read("*a"):match("true")
+  if handle then handle:close() end
+  
+  if is_git_repo and config_manager.is_project_configured() then
+    -- Update project config
+    local project_config = config_manager.load_project_config() or {}
+    project_config.ui = project_config.ui or {}
+    project_config.ui.style = project_config.ui.style or {}
+    project_config.ui.style.preset = next_style
+    config_manager.save_project_config(project_config)
+  else
+    -- Update global config
+    local global_config = config_manager.load_global_config() or {}
+    global_config.ui = global_config.ui or {}
+    global_config.ui.style = global_config.ui.style or {}
+    global_config.ui.style.preset = next_style
+    config_manager.save_global_config(global_config)
+  end
+  
+  -- Update current style
+  M.style = require("todo-mcp.views").get_style(next_style)
+  
+  -- Refresh display
+  M.refresh()
+  
+  -- Show notification
+  vim.notify("Visual style changed to: " .. next_style, vim.log.levels.INFO)
 end
 
 return M

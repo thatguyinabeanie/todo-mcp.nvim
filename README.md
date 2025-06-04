@@ -160,37 +160,51 @@ See `mcp-servers/README.md` for setup instructions.
 
 ## Configuration
 
+Todo-MCP supports both global configuration (`~/.config/todo-mcp/config.json`) and project-specific configuration (`.todo-mcp/config.json`). Project settings override global settings.
+
+### Setup Wizard
+
+On first use in a project, Todo-MCP will run a setup wizard to configure project-specific settings:
+
+```vim
+:TodoMCP setup project    " Run project setup wizard
+:TodoMCP setup global     " Run global setup wizard
+:TodoMCP config project   " Edit project config
+:TodoMCP config global    " Edit global config
+```
+
+### Manual Configuration
+
 ```lua
 require("todo-mcp").setup({
-  -- Database location
-  db_path = vim.fn.expand("~/.local/share/nvim/todo-mcp.db"),
+  -- Database settings
+  db = {
+    project_relative = true,  -- Use project-specific database
+    project_dir = ".todo-mcp",
+    name = "todos.db"
+  },
 
   -- UI settings
   ui = {
     width = 80,
     height = 30,
     border = "rounded",
-
-    -- Modern UI options (new!)
-    modern_ui = true,           -- Enable modern styling
-    animation_speed = 150,      -- Animation duration (ms)
-    floating_preview = true,    -- Show floating preview windows
-    preview_enabled = true,     -- Enable preview on navigation
-    status_line = true,         -- Status line integration
-
-    -- View style (see View Styles section below)
     style = {
-      preset = "modern" -- minimal | emoji | modern | sections | compact | ascii
+      preset = "modern"  -- minimal | emoji | modern | sections | compact | ascii
     }
   },
 
-  -- Internal keymaps (inside todo list popup)
-  keymaps = {
-    add = "a",
-    delete = "d",
-    toggle_done = "<CR>",
-    quit = "q",
+  -- Export settings
+  export = {
+    directory = "exports",  -- Relative to project or absolute path
+    confirm = true          -- Show confirmation before exporting
   },
+
+  -- Project settings
+  project = {
+    auto_setup = true,      -- Run setup wizard on first use
+    share_with_team = false -- Include in version control
+  }
 })
 ```
 
