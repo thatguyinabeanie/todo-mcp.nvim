@@ -402,6 +402,7 @@ M.setup_keymaps = function()
       "│  a/o     - Add new todo (inline editing)  │",
       "│  A       - Add todo with priority/tags    │",
       "│  d       - Delete todo                    │",
+      "│  +/-     - Increase/decrease priority     │",
       "│                                           │",
       "│  Linking Files:                           │",
       "│  When adding a todo (A), you'll be asked  │",
@@ -456,6 +457,15 @@ M.setup_keymaps = function()
   vim.keymap.set("n", "o", function()
     M.start_inline_add()
   end, { buffer = buf, desc = "Add new todo (vim-like)" })
+  
+  -- Priority controls
+  vim.keymap.set("n", "+", function()
+    M.increase_priority()
+  end, { buffer = buf, desc = "Increase priority" })
+  
+  vim.keymap.set("n", "-", function()
+    M.decrease_priority()
+  end, { buffer = buf, desc = "Decrease priority" })
   
   -- Quit
   vim.keymap.set("n", keymaps.quit, M.close, { buffer = buf })
@@ -926,6 +936,57 @@ M.cleanup_inline_edit = function()
   
   -- Refresh the display
   M.refresh()
+end
+
+-- Priority management functions
+M.increase_priority = function()
+  local idx = M.get_cursor_todo_idx()
+  if not idx or not M.state.todos[idx] then
+    return
+  end
+  
+  local todo = M.state.todos[idx]
+  local current_priority = todo.priority or "medium"
+  local new_priority
+  
+  if current_priority == "low" then
+    new_priority = "medium"
+  elseif current_priority == "medium" then
+    new_priority = "high"
+  else
+    -- Already high priority
+    vim.notify("Already at highest priority", vim.log.levels.INFO)
+    return
+  end
+  
+  db.update(todo.id, { priority = new_priority })
+  M.refresh()
+  vim.notify(string.format("Priority increased to %s", new_priority), vim.log.levels.INFO)
+end
+
+M.decrease_priority = function()
+  local idx = M.get_cursor_todo_idx()
+  if not idx or not M.state.todos[idx] then
+    return
+  end
+  
+  local todo = M.state.todos[idx]
+  local current_priority = todo.priority or "medium"
+  local new_priority
+  
+  if current_priority == "high" then
+    new_priority = "medium"
+  elseif current_priority == "medium" then
+    new_priority = "low"
+  else
+    -- Already low priority
+    vim.notify("Already at lowest priority", vim.log.levels.INFO)
+    return
+  end
+  
+  db.update(todo.id, { priority = new_priority })
+  M.refresh()
+  vim.notify(string.format("Priority decreased to %s", new_priority), vim.log.levels.INFO)
 end
 
 return M
