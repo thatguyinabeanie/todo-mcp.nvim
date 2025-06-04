@@ -45,8 +45,9 @@ seamless external integrations.
 
 ## Installation
 
-Using [lazy.nvim](https://github.com/folke/lazy.nvim) with lazy loading:
+Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
+<<<<<<< Updated upstream
 ```lua
 {
   "thatguyinabeanie/todo-mcp.nvim",
@@ -78,6 +79,106 @@ Alternative (no lazy loading):
   end
 }
 ```
+||||||| Stash base
+```lua
+{
+  "thatguyinabeanie/todo-mcp.nvim",
+  dependencies = {
+    "kkharji/sqlite.lua",  -- Required for database operations
+  },
+  cmd = "TodoMCP",  -- Load on command
+  keys = {
+    { "<leader>td", "<Plug>(todo-mcp-toggle)", desc = "Toggle todo list" },
+    { "<leader>ta", "<Plug>(todo-mcp-add)", desc = "Add todo" },
+    { "<leader>tA", "<Plug>(todo-mcp-add-advanced)", desc = "Add todo with options" },
+  },
+  config = function()
+    require("todo-mcp").setup({
+      -- Configuration is optional
+    })
+  end
+}
+```
+
+### LazyVim
+
+For LazyVim users, create `~/.config/nvim/lua/plugins/todo-mcp.lua`:
+
+```lua
+return {
+  "thatguyinabeanie/todo-mcp.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "kkharji/sqlite.lua",
+  },
+  cmd = "TodoMCP",
+  keys = {
+    { "<leader>td", "<cmd>TodoMCP<cr>", desc = "Todo List" },
+    { "<leader>ta", "<cmd>TodoMCP add<cr>", desc = "Add Todo" },
+    { "<leader>ts", "<cmd>TodoMCP search<cr>", desc = "Search Todos" },
+    { "<leader>tS", "<cmd>TodoMCP style<cr>", desc = "Cycle Style" },
+  },
+  opts = {
+    picker = "auto",  -- Will use telescope > fzf > snacks > built-in
+    ui = {
+      style = { preset = "modern" }
+    },
+  },
+}
+```
+
+See the `examples/` directory for more configurations:
+- `basic-setup.lua` - Minimal configuration
+- `recommended-setup.lua` - Recommended for most users
+- `advanced-setup.lua` - Full integrations (lualine, telescope, etc.)
+- `project-specific.lua` - Project-focused workflow
+- `ui-styles.lua` - Visual style examples
+
+Alternative (no lazy loading):
+
+```lua
+{
+  "thatguyinabeanie/todo-mcp.nvim",
+  dependencies = { "kkharji/sqlite.lua" },
+  config = function()
+    require("todo-mcp").setup()
+  end
+}
+```
+
+=======
+Create `~/.config/nvim/lua/plugins/todo-mcp.lua`:
+
+```lua
+return {
+  "thatguyinabeanie/todo-mcp.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "kkharji/sqlite.lua",
+  },
+  cmd = "TodoMCP",
+  keys = {
+    { "<leader>td", "<cmd>TodoMCP<cr>", desc = "Todo List" },
+    { "<leader>ta", "<cmd>TodoMCP add<cr>", desc = "Add Todo" },
+    { "<leader>ts", "<cmd>TodoMCP search<cr>", desc = "Search Todos" },
+    { "<leader>tS", "<cmd>TodoMCP style<cr>", desc = "Cycle Style" },
+  },
+  opts = {
+    picker = "auto",  -- Will use telescope > fzf > snacks > built-in
+    ui = {
+      style = { preset = "modern" }
+    },
+  },
+}
+```
+
+See the `examples/` directory for more configurations:
+- `basic-setup.lua` - Minimal configuration
+- `recommended-setup.lua` - Recommended for most users
+- `advanced-setup.lua` - Full integrations (lualine, telescope, etc.)
+- `project-specific.lua` - Project-focused workflow
+- `ui-styles.lua` - Visual style examples
+>>>>>>> Stashed changes
 
 ## Usage
 
@@ -194,6 +295,30 @@ require("todo-mcp").setup({
 })
 ```
 
+<<<<<<< Updated upstream
+||||||| Stash base
+### Configuration Examples
+
+All examples use LazyVim plugin spec format. See `examples/README.md` for details:
+
+- `basic-setup.lua` - Minimal configuration
+- `recommended-setup.lua` - Recommended for most users  
+- `advanced-setup.lua` - Full integrations
+- `project-specific.lua` - Project-focused workflow
+- `ui-styles.lua` - Visual style examples
+
+=======
+### Configuration Examples
+
+All examples use lazy.nvim plugin spec format. See `examples/README.md` for details:
+
+- `basic-setup.lua` - Minimal configuration
+- `recommended-setup.lua` - Recommended for most users  
+- `advanced-setup.lua` - Full integrations
+- `project-specific.lua` - Project-focused workflow
+- `ui-styles.lua` - Visual style examples
+
+>>>>>>> Stashed changes
 ### Custom Global Keymaps
 
 Disable default keymaps and set your own:
