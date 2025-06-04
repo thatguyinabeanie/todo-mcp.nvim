@@ -462,6 +462,14 @@ local function handle_call_tool(params)
   local tool_name = params.name
   local args = params.arguments
   
+  -- Check configuration before processing any tool calls
+  if not JIRA_URL or not JIRA_EMAIL or not JIRA_API_TOKEN then
+    return { 
+      error = "JIRA integration not configured. Please set JIRA_URL, JIRA_EMAIL, and JIRA_API_TOKEN environment variables.",
+      code = "configuration_error"
+    }
+  end
+  
   if tool_name == "create_jira_issue" then
     local result, err = create_issue(args)
     if err then
@@ -521,11 +529,8 @@ end
 
 -- Main MCP message loop
 local function main()
-  if not JIRA_URL or not JIRA_EMAIL or not JIRA_API_TOKEN then
-    io.stderr:write("Error: JIRA environment variables not set\n")
-    io.stderr:write("Required: JIRA_URL, JIRA_EMAIL, JIRA_API_TOKEN\n")
-    os.exit(1)
-  end
+  -- Don't exit immediately - respond to MCP protocol messages
+  -- Configuration errors will be handled per-request
   
   while true do
     local line = io.read("*line")
