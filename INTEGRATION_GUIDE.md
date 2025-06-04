@@ -54,9 +54,10 @@ luarocks install lua-http    # Alternative
 # Linear
 export LINEAR_API_KEY="your_linear_api_key"
 
-# GitHub
+# GitHub  
 export GITHUB_TOKEN="your_github_token"
-export GITHUB_REPO="owner/repo"  # Optional, auto-detected from git
+# Repository is auto-detected from git remote origin
+# To override: export GITHUB_REPO="owner/repo"
 
 # JIRA
 export JIRA_URL="https://yourcompany.atlassian.net"

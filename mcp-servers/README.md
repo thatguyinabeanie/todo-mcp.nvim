@@ -38,8 +38,7 @@ luarocks install luasocket   # HTTP client and utilities
          "command": "lua",
          "args": ["path/to/mcp-servers/github-server.lua"],
          "env": {
-           "GITHUB_TOKEN": "your_personal_access_token",
-           "GITHUB_REPO": "owner/repo"
+           "GITHUB_TOKEN": "your_personal_access_token"
          }
        }
      }
@@ -47,7 +46,7 @@ luarocks install luasocket   # HTTP client and utilities
    ```
 
 3. Each server requires specific environment variables:
-   - **GitHub**: `GITHUB_TOKEN`, `GITHUB_REPO` (optional)
+   - **GitHub**: `GITHUB_TOKEN` (required). Repository is auto-detected from git remote
    - **JIRA**: `JIRA_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`
    - **Linear**: `LINEAR_API_KEY`
 

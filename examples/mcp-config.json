@@ -11,11 +11,10 @@
           }
         },
         "github": {
-          "command": "lua", 
+          "command": "lua",
           "args": ["mcp-servers/github-server.lua"],
           "env": {
-            "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-            "GITHUB_REPO": "${GITHUB_REPO}"
+            "GITHUB_TOKEN": "${GITHUB_TOKEN}"
           }
         },
         "jira": {

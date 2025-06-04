@@ -16,12 +16,15 @@ In mcp-config.json:
       "command": "lua",
       "args": ["mcp-servers/github-server.lua"],
       "env": {
-        "GITHUB_TOKEN": "your_personal_access_token",
-        "GITHUB_REPO": "owner/repo"
+        "GITHUB_TOKEN": "your_personal_access_token"
       }
     }
   }
 }
+
+The server will automatically detect the GitHub repository from the current
+git directory's origin remote. If you need to override this, you can set:
+  "GITHUB_REPO": "owner/repo"
 --]]
 
 -- Check for required dependencies
@@ -125,9 +128,41 @@ local function detect_repository()
 
     if remote_url then
       -- Parse GitHub URL patterns
+      -- HTTPS: https://github.com/owner/repo.git
       local owner, repo = remote_url:match("github%.com[:/]([^/]+)/([^/%.]+)")
       if owner and repo then
+        -- Remove .git suffix if present
+        repo = repo:gsub("%.git$", "")
         return owner .. "/" .. repo
+      end
+      
+      -- SSH: git@github.com:owner/repo.git
+      owner, repo = remote_url:match("git@github%.com:([^/]+)/([^/%.]+)")
+      if owner and repo then
+        -- Remove .git suffix if present
+        repo = repo:gsub("%.git$", "")
+        return owner .. "/" .. repo
+      end
+    end
+  end
+
+  -- Fallback: try to detect from current directory name and git config
+  handle = io.popen("basename $(git rev-parse --show-toplevel) 2>/dev/null")
+  if handle then
+    local repo_name = handle:read("*line")
+    handle:close()
+    
+    if repo_name then
+      -- Try to get GitHub username from git config
+      handle = io.popen("git config --get user.name 2>/dev/null")
+      if handle then
+        local username = handle:read("*line")
+        handle:close()
+        
+        if username then
+          io.stderr:write("Warning: Could not detect GitHub repo from remote. Using fallback: " .. username .. "/" .. repo_name .. "\n")
+          return username .. "/" .. repo_name
+        end
       end
     end
   end
