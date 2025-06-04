@@ -220,7 +220,7 @@ end
 -- Update virtual text for a line
 M.update_virtual_text = function(file, line)
   local bufnr = vim.fn.bufnr(file)
-  if bufnr == -1 then return end
+  if bufnr == -1 or not vim.api.nvim_buf_is_valid(bufnr) then return end
   
   -- Clear existing virtual text
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, line - 1, line)
@@ -246,10 +246,13 @@ M.update_virtual_text = function(file, line)
       table.insert(virt_text, {" !", "TodoPriorityHigh"})
     end
     
-    vim.api.nvim_buf_set_extmark(bufnr, ns_id, line - 1, 0, {
-      virt_text = virt_text,
-      virt_text_pos = "eol",
-    })
+    -- Validate buffer before setting extmark
+    if vim.api.nvim_buf_is_valid(bufnr) then
+      vim.api.nvim_buf_set_extmark(bufnr, ns_id, line - 1, 0, {
+        virt_text = virt_text,
+        virt_text_pos = "eol",
+      })
+    end
   end
 end
 
@@ -382,6 +385,11 @@ end
 
 -- Update all virtual text in buffer
 M.update_buffer_virtual_text = function(bufnr, filename)
+  -- Validate buffer
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+  
   -- Clear all virtual text first
   vim.api.nvim_buf_clear_namespace(bufnr, ns_id, 0, -1)
   
