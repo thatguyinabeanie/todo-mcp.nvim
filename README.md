@@ -67,6 +67,35 @@ Using [lazy.nvim](https://github.com/folke/lazy.nvim) with lazy loading:
 }
 ```
 
+### LazyVim
+
+For LazyVim users, create `~/.config/nvim/lua/plugins/todo-mcp.lua`:
+
+```lua
+return {
+  "thatguyinabeanie/todo-mcp.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim",
+    "kkharji/sqlite.lua",
+  },
+  cmd = "TodoMCP",
+  keys = {
+    { "<leader>td", "<cmd>TodoMCP<cr>", desc = "Todo List" },
+    { "<leader>ta", "<cmd>TodoMCP add<cr>", desc = "Add Todo" },
+    { "<leader>ts", "<cmd>TodoMCP search<cr>", desc = "Search Todos" },
+    { "<leader>tS", "<cmd>TodoMCP style<cr>", desc = "Cycle Style" },
+  },
+  opts = {
+    picker = "auto",  -- Will use telescope > fzf > snacks > built-in
+    ui = {
+      style = { preset = "modern" }
+    },
+  },
+}
+```
+
+See `examples/lazyvim-config.lua` for a full-featured configuration with integrations.
+
 Alternative (no lazy loading):
 
 ```lua
