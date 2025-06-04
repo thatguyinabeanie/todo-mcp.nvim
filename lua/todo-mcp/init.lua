@@ -41,9 +41,9 @@ M.setup = function(opts)
     picker = "auto",
     -- Export settings
     export = {
-      directory = vim.fn.expand("~/"),
-      -- Can also be a function that returns a path
-      -- directory = function() return vim.fn.getcwd() end,
+      directory = function() return vim.fn.getcwd() end,
+      -- Can also be a static path:
+      -- directory = vim.fn.expand("~/Documents/todos"),
     },
     -- Integration settings
     integrations = {
