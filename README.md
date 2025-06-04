@@ -94,7 +94,12 @@ return {
 }
 ```
 
-See `examples/lazyvim-config.lua` for a full-featured configuration with integrations.
+See the `examples/` directory for more configurations:
+- `basic-setup.lua` - Minimal configuration
+- `recommended-setup.lua` - Recommended for most users
+- `advanced-setup.lua` - Full integrations (lualine, telescope, etc.)
+- `project-specific.lua` - Project-focused workflow
+- `ui-styles.lua` - Visual style examples
 
 Alternative (no lazy loading):
 
@@ -239,13 +244,13 @@ require("todo-mcp").setup({
 
 ### Configuration Examples
 
-See the `examples/` directory for detailed configuration examples:
+All examples use LazyVim plugin spec format. See `examples/README.md` for details:
 
-- `minimal-config.lua` - Simplest setup with defaults
-- `full-config.lua` - All available options documented
-- `project-config.lua` - Project-specific todo management
-- `ui-config.lua` - Various UI style examples
-- `enterprise-config.lua` - Enterprise features setup
+- `basic-setup.lua` - Minimal configuration
+- `recommended-setup.lua` - Recommended for most users  
+- `advanced-setup.lua` - Full integrations
+- `project-specific.lua` - Project-focused workflow
+- `ui-styles.lua` - Visual style examples
 
 ### Custom Global Keymaps
 
