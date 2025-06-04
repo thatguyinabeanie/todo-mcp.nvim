@@ -2,6 +2,23 @@
 local M = {}
 local db = require("todo-mcp.db")
 
+-- Get export directory from config
+local function get_export_dir()
+  local config = require("todo-mcp").opts
+  if not config or not config.export then
+    return vim.fn.expand("~/")
+  end
+  
+  local dir = config.export.directory
+  if type(dir) == "function" then
+    dir = dir()
+  end
+  
+  -- Ensure directory exists
+  vim.fn.mkdir(vim.fn.expand(dir), "p")
+  return vim.fn.expand(dir)
+end
+
 -- Get all todos with full metadata from SQLite
 local function get_todos_with_metadata()
   -- Simply use the db module's get_all function which already has all fields
@@ -10,7 +27,7 @@ end
 
 -- Export to Markdown format
 M.export_markdown = function(file_path)
-  file_path = file_path or vim.fn.expand("~/todos.md")
+  file_path = file_path or (get_export_dir() .. "/todos.md")
   local todos = get_todos_with_metadata()
   local lines = {
     "# Todo List",
@@ -48,7 +65,7 @@ end
 
 -- Export to JSON format
 M.export_json = function(file_path)
-  file_path = file_path or vim.fn.expand("~/todos.json")
+  file_path = file_path or (get_export_dir() .. "/todos.json")
   local todos = get_todos_with_metadata()
   
   local data = {
@@ -73,7 +90,7 @@ end
 
 -- Export to YAML format
 M.export_yaml = function(file_path)
-  file_path = file_path or vim.fn.expand("~/todos.yaml")
+  file_path = file_path or (get_export_dir() .. "/todos.yaml")
   local todos = get_todos_with_metadata()
   
   local lines = {
@@ -100,7 +117,7 @@ end
 
 -- Export to all formats at once
 M.export_all = function(base_path)
-  base_path = base_path or vim.fn.expand("~/todos")
+  base_path = base_path or (get_export_dir() .. "/todos")
   
   M.export_markdown(base_path .. ".md")
   M.export_json(base_path .. ".json")
