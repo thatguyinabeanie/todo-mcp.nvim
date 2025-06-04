@@ -331,6 +331,14 @@ local function handle_call_tool(params)
   local tool_name = params.name
   local args = params.arguments
   
+  -- Check configuration before processing any tool calls
+  if not API_KEY then
+    return { 
+      error = "Linear integration not configured. Please set LINEAR_API_KEY environment variable.",
+      code = "configuration_error"
+    }
+  end
+  
   if tool_name == "create_linear_issue" then
     local result, err = create_issue(args)
     if err then
@@ -376,10 +384,8 @@ end
 
 -- Main MCP message loop
 local function main()
-  if not API_KEY then
-    io.stderr:write("Error: LINEAR_API_KEY environment variable not set\n")
-    os.exit(1)
-  end
+  -- Don't exit immediately - respond to MCP protocol messages
+  -- Configuration errors will be handled per-request
   
   while true do
     local line = io.read("*line")

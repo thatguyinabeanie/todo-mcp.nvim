@@ -15,7 +15,9 @@ M.state = {
   preview_win = nil,
   preview_buf = nil,
   preview_enabled = false,
-  status_line_timer = nil
+  status_line_timer = nil,
+  command_win = nil,
+  command_buf = nil
 }
 
 M.setup = function(config)
@@ -230,12 +232,10 @@ M.refresh = function()
       "  💡 Quick start: a=add  A=add+  /=search  ?=help"
     }
   else
-    -- Enhanced footer with better visual hierarchy
+    -- Simple help hint at the bottom
     table.insert(lines, "")
-    table.insert(lines, "╭─ Commands ──────────────────────────────────────────╮")
-    table.insert(lines, "│ a=add  A=add+  d=delete  /=search  gf=jump  p=preview │")
-    table.insert(lines, "│ em=export md  ej=export json  ?=help  q=quit         │")
-    table.insert(lines, "╰─────────────────────────────────────────────────────╯")
+    table.insert(lines, string.rep("─", 40))
+    table.insert(lines, "    Press ? for help")
   end
   
   api.nvim_buf_set_option(M.state.buf, "modifiable", true)
@@ -413,10 +413,15 @@ M.setup_keymaps = function()
       "│  A       - Add todo with priority/tags    │",
       "│  d       - Delete todo                    │",
       "│                                           │",
+      "│  Linking Files:                           │",
+      "│  When adding a todo (A), you'll be asked  │",
+      "│  if you want to link it to the current   │",
+      "│  file and line number.                    │",
+      "│  gf      - Jump to linked file            │",
+      "│                                           │",
       "│  Search & Navigation:                     │",
       "│  /       - Search todos                   │",
       "│  <C-c>   - Clear search                   │",
-      "│  gf      - Jump to linked file            │",
       "│                                           │",
       "│  Export Options:                          │",
       "│  em      - Export to Markdown             │",
@@ -436,7 +441,7 @@ M.setup_keymaps = function()
       relative = "editor",
       row = math.floor(vim.o.lines * 0.1),
       col = math.floor(vim.o.columns * 0.2),
-      width = math.min(45, vim.o.columns - 4),
+      width = math.min(48, vim.o.columns - 4),
       height = #help,
       border = "rounded",
       style = "minimal",

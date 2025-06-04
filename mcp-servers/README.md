@@ -61,10 +61,18 @@ All servers support:
 
 ## Error Handling
 
-If dependencies are missing, servers will display helpful error messages:
-```
-Error: Missing JSON library. Install with: luarocks install dkjson
-Error: Missing LuaSocket. Install with: luarocks install luasocket
+The MCP servers are designed to be graceful and optional:
+
+- **Missing dependencies**: Servers display helpful installation messages
+- **Missing configuration**: Servers start normally but return configuration errors for tool calls
+- **Optional by design**: Servers only activate when explicitly configured by the user
+
+Example error responses:
+```json
+{
+  "error": "GitHub integration not configured. Please set GITHUB_TOKEN environment variable.",
+  "code": "configuration_error"
+}
 ```
 
 ## Development

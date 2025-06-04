@@ -39,6 +39,13 @@ M.setup = function(opts)
     },
     -- Picker preference (telescope | fzf | snacks | auto)
     picker = "auto",
+    -- Export settings
+    export = {
+      directory = function() return vim.fn.getcwd() end,
+      -- Can also be a static path:
+      -- directory = vim.fn.expand("~/Documents/todos"),
+      confirm = true, -- Show confirmation before exporting
+    },
     -- Integration settings
     integrations = {
       todo_comments = {
