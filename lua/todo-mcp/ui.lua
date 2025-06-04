@@ -163,9 +163,11 @@ M.refresh = function()
     -- Use new view system
     local views = require("todo-mcp.views")
     
-    -- Modern title bar with progress visualization
-    local title = "📝 Todo Manager"
+    -- Modern title bar with progress visualization and help hint
+    local title_left = "📝 Todo Manager"
+    local help_hint = "? for help"
     local stats_line = ""
+    
     if #M.state.todos > 0 then
       local done_count = 0
       local in_progress_count = 0
@@ -185,16 +187,25 @@ M.refresh = function()
       local filled = math.floor((done_count / total) * bar_width)
       local progress_bar = string.rep("\u{2593}", filled) .. string.rep("\u{2591}", bar_width - filled)
       
-      title = title .. " (" .. done_count .. "/" .. total .. " done)"
+      title_left = title_left .. " (" .. done_count .. "/" .. total .. " done)"
       stats_line = string.format("    %s %d%% │ %d active │ %d in progress", 
         progress_bar, completion_pct, total - done_count, in_progress_count)
     end
     
-    table.insert(lines, title)
+    -- Create title line with help hint right-aligned
+    local window_width = M.config.width
+    local title_left_width = vim.fn.strwidth(title_left)
+    local help_hint_width = vim.fn.strwidth(help_hint)
+    local padding = window_width - title_left_width - help_hint_width
+    padding = math.max(1, padding)  -- Ensure at least 1 space
+    
+    local title_line = title_left .. string.rep(" ", padding) .. help_hint
+    
+    table.insert(lines, title_line)
     if stats_line ~= "" then
       table.insert(lines, stats_line)
     end
-    table.insert(lines, string.rep("─", math.max(vim.fn.strwidth(title), vim.fn.strwidth(stats_line))))
+    table.insert(lines, string.rep("─", math.max(vim.fn.strwidth(title_line), vim.fn.strwidth(stats_line))))
     table.insert(lines, "")
     
     -- Add search header if active  
@@ -231,11 +242,6 @@ M.refresh = function()
       "",
       "  💡 Quick start: a=add  A=add+  /=search  ?=help"
     }
-  else
-    -- Simple help hint at the bottom
-    table.insert(lines, "")
-    table.insert(lines, string.rep("─", 40))
-    table.insert(lines, "    Press ? for help")
   end
   
   api.nvim_buf_set_option(M.state.buf, "modifiable", true)
