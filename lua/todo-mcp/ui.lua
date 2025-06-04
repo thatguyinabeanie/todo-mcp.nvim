@@ -205,7 +205,6 @@ M.refresh = function()
     if stats_line ~= "" then
       table.insert(lines, stats_line)
     end
-    table.insert(lines, string.rep("─", math.max(vim.fn.strwidth(title_line), vim.fn.strwidth(stats_line))))
     table.insert(lines, "")
     
     -- Add search header if active  
@@ -219,7 +218,6 @@ M.refresh = function()
         search_line = search_line .. " [" .. table.concat(filter_parts, ", ") .. "]"
       end
       table.insert(lines, search_line)
-      table.insert(lines, string.rep("─", vim.fn.strwidth(search_line)))
       table.insert(lines, "")
     end
     
