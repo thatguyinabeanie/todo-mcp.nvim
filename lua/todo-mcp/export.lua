@@ -19,15 +19,39 @@ local function get_export_dir()
   return vim.fn.expand(dir)
 end
 
+-- Check if confirmation is needed
+local function needs_confirmation()
+  local config = require("todo-mcp").opts
+  return config and config.export and config.export.confirm
+end
+
+-- Show confirmation dialog
+local function confirm_export(file_path, callback)
+  if not needs_confirmation() then
+    callback()
+    return
+  end
+  
+  local prompt = string.format("Export todos to %s?", vim.fn.fnamemodify(file_path, ":~"))
+  vim.ui.select({"Yes", "No"}, {
+    prompt = prompt,
+  }, function(choice)
+    if choice == "Yes" then
+      callback()
+    else
+      vim.notify("Export cancelled", vim.log.levels.INFO)
+    end
+  end)
+end
+
 -- Get all todos with full metadata from SQLite
 local function get_todos_with_metadata()
   -- Simply use the db module's get_all function which already has all fields
   return db.get_all()
 end
 
--- Export to Markdown format
-M.export_markdown = function(file_path)
-  file_path = file_path or (get_export_dir() .. "/todos.md")
+-- Internal export function without confirmation
+local function export_markdown_internal(file_path)
   local todos = get_todos_with_metadata()
   local lines = {
     "# Todo List",
@@ -63,9 +87,19 @@ M.export_markdown = function(file_path)
   return file_path
 end
 
--- Export to JSON format
-M.export_json = function(file_path)
-  file_path = file_path or (get_export_dir() .. "/todos.json")
+-- Export to Markdown format
+M.export_markdown = function(file_path)
+  file_path = file_path or (get_export_dir() .. "/todos.md")
+  
+  confirm_export(file_path, function()
+    export_markdown_internal(file_path)
+  end)
+  
+  return file_path
+end
+
+-- Internal export function without confirmation
+local function export_json_internal(file_path)
   local todos = get_todos_with_metadata()
   
   local data = {
@@ -88,9 +122,19 @@ M.export_json = function(file_path)
   return file_path
 end
 
--- Export to YAML format
-M.export_yaml = function(file_path)
-  file_path = file_path or (get_export_dir() .. "/todos.yaml")
+-- Export to JSON format
+M.export_json = function(file_path)
+  file_path = file_path or (get_export_dir() .. "/todos.json")
+  
+  confirm_export(file_path, function()
+    export_json_internal(file_path)
+  end)
+  
+  return file_path
+end
+
+-- Internal export function without confirmation
+local function export_yaml_internal(file_path)
   local todos = get_todos_with_metadata()
   
   local lines = {
@@ -115,15 +159,28 @@ M.export_yaml = function(file_path)
   return file_path
 end
 
+-- Export to YAML format
+M.export_yaml = function(file_path)
+  file_path = file_path or (get_export_dir() .. "/todos.yaml")
+  
+  confirm_export(file_path, function()
+    export_yaml_internal(file_path)
+  end)
+  
+  return file_path
+end
+
 -- Export to all formats at once
 M.export_all = function(base_path)
   base_path = base_path or (get_export_dir() .. "/todos")
   
-  M.export_markdown(base_path .. ".md")
-  M.export_json(base_path .. ".json")
-  M.export_yaml(base_path .. ".yaml")
-  
-  vim.notify("Exported to all formats: " .. base_path .. ".{md,json,yaml}")
+  confirm_export(base_path .. ".*", function()
+    export_markdown_internal(base_path .. ".md")
+    export_json_internal(base_path .. ".json")
+    export_yaml_internal(base_path .. ".yaml")
+    
+    vim.notify("Exported to all formats: " .. base_path .. ".{md,json,yaml}")
+  end)
 end
 
 -- Import from JSON format
