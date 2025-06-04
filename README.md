@@ -194,6 +194,16 @@ require("todo-mcp").setup({
 })
 ```
 
+### Configuration Examples
+
+See the `examples/` directory for detailed configuration examples:
+
+- `minimal-config.lua` - Simplest setup with defaults
+- `full-config.lua` - All available options documented
+- `project-config.lua` - Project-specific todo management
+- `ui-config.lua` - Various UI style examples
+- `enterprise-config.lua` - Enterprise features setup
+
 ### Custom Global Keymaps
 
 Disable default keymaps and set your own:
