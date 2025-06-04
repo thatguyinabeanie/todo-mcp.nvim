@@ -375,6 +375,12 @@ M.setup_highlights = function()
   -- Section headers
   vim.api.nvim_set_hl(0, "TodoSectionHeader", { fg = "#89b4fa", bold = true })
   vim.api.nvim_set_hl(0, "TodoSeparator", { fg = "#585b70" })
+  
+  -- Border styling
+  vim.api.nvim_set_hl(0, "TodoBorderHelp", { fg = "#74c7ec", italic = true })
+  vim.api.nvim_set_hl(0, "TodoBorderCorner", { link = "FloatBorder" })
+  vim.api.nvim_set_hl(0, "TodoBorderHorizontal", { link = "FloatBorder" })
+  vim.api.nvim_set_hl(0, "TodoBorderVertical", { link = "FloatBorder" })
 end
 
 return M
