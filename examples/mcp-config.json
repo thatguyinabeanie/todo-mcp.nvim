@@ -1,32 +1,32 @@
 {
-  "mcpVersion": "2024-11-05",
-  "clients": {
-    "todo-mcp-nvim": {
-      "servers": {
-        "linear": {
-          "command": "lua",
-          "args": ["mcp-servers/linear-server.lua"],
-          "env": {
-            "LINEAR_API_KEY": "${LINEAR_API_KEY}"
-          }
-        },
-        "github": {
-          "command": "lua",
-          "args": ["mcp-servers/github-server.lua"],
-          "env": {
-            "GITHUB_TOKEN": "${GITHUB_TOKEN}"
-          }
-        },
-        "jira": {
-          "command": "lua",
-          "args": ["mcp-servers/jira-server.lua"],
-          "env": {
-            "JIRA_URL": "${JIRA_URL}",
-            "JIRA_EMAIL": "${JIRA_EMAIL}",
-            "JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
-          }
-        }
-      }
-    }
-  }
+	"mcpVersion": "2024-11-05",
+	"clients": {
+		"todo-mcp-nvim": {
+			"servers": {
+				"linear": {
+					"command": "lua",
+					"args": ["mcp-servers/linear-server.lua"],
+					"env": {
+						"LINEAR_API_KEY": "${LINEAR_API_KEY}"
+					}
+				},
+				"github": {
+					"command": "lua",
+					"args": ["mcp-servers/github-server.lua"],
+					"env": {
+						"GITHUB_TOKEN": "${GITHUB_TOKEN}"
+					}
+				},
+				"jira": {
+					"command": "lua",
+					"args": ["mcp-servers/jira-server.lua"],
+					"env": {
+						"JIRA_URL": "${JIRA_URL}",
+						"JIRA_EMAIL": "${JIRA_EMAIL}",
+						"JIRA_API_TOKEN": "${JIRA_API_TOKEN}"
+					}
+				}
+			}
+		}
+	}
 }

@@ -1,6 +1,6 @@
-# Todo-MCP LazyVim Configuration Examples
+# Todo-MCP Configuration Examples
 
-This directory contains LazyVim-formatted configuration examples for todo-mcp.nvim. All examples should be placed in `~/.config/nvim/lua/plugins/todo-mcp.lua`.
+All examples use [lazy.nvim](https://github.com/folke/lazy.nvim) plugin manager format. Place your chosen configuration in `~/.config/nvim/lua/plugins/todo-mcp.lua`.
 
 ## 📁 Available Examples
 

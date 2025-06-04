@@ -1,4 +1,4 @@
--- Recommended LazyVim Setup for todo-mcp.nvim
+-- Recommended lazy.nvim Setup for todo-mcp.nvim
 -- Place in: ~/.config/nvim/lua/plugins/todo-mcp.lua
 
 return {

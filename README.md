@@ -45,31 +45,9 @@ seamless external integrations.
 
 ## Installation
 
-Using [lazy.nvim](https://github.com/folke/lazy.nvim) with lazy loading:
+Using [lazy.nvim](https://github.com/folke/lazy.nvim):
 
-```lua
-{
-  "thatguyinabeanie/todo-mcp.nvim",
-  dependencies = {
-    "kkharji/sqlite.lua",  -- Required for database operations
-  },
-  cmd = "TodoMCP",  -- Load on command
-  keys = {
-    { "<leader>td", "<Plug>(todo-mcp-toggle)", desc = "Toggle todo list" },
-    { "<leader>ta", "<Plug>(todo-mcp-add)", desc = "Add todo" },
-    { "<leader>tA", "<Plug>(todo-mcp-add-advanced)", desc = "Add todo with options" },
-  },
-  config = function()
-    require("todo-mcp").setup({
-      -- Configuration is optional
-    })
-  end
-}
-```
-
-### LazyVim
-
-For LazyVim users, create `~/.config/nvim/lua/plugins/todo-mcp.lua`:
+Create `~/.config/nvim/lua/plugins/todo-mcp.lua`:
 
 ```lua
 return {
@@ -100,18 +78,6 @@ See the `examples/` directory for more configurations:
 - `advanced-setup.lua` - Full integrations (lualine, telescope, etc.)
 - `project-specific.lua` - Project-focused workflow
 - `ui-styles.lua` - Visual style examples
-
-Alternative (no lazy loading):
-
-```lua
-{
-  "thatguyinabeanie/todo-mcp.nvim",
-  dependencies = { "kkharji/sqlite.lua" },
-  config = function()
-    require("todo-mcp").setup()
-  end
-}
-```
 
 ## Usage
 
@@ -244,7 +210,7 @@ require("todo-mcp").setup({
 
 ### Configuration Examples
 
-All examples use LazyVim plugin spec format. See `examples/README.md` for details:
+All examples use lazy.nvim plugin spec format. See `examples/README.md` for details:
 
 - `basic-setup.lua` - Minimal configuration
 - `recommended-setup.lua` - Recommended for most users  
